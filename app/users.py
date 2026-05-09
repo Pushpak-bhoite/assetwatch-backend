@@ -47,7 +47,7 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
         
     async def on_after_forgot_password(self, user: User, token:str, request:Optional[Request] = None):
         """Called when user requests password reset."""
-        print(f"User {user.id} has forgot their password. Reset token ")
+        print(f"User {user.id} has forgot their password. Reset token {token}")
         
     async def on_after_request_verify(self, user:User, token:str, request: Optional[Request]= None):
         """Called when user requests email verification."""

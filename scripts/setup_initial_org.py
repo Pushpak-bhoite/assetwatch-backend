@@ -60,6 +60,7 @@ async def assign_user(email: str):
         # Promote in DB
         user.organization_type = "assetwatch"
         user.name = user.name or "AssetWatch"
+        user.is_superuser = True  # this will enable admin to edit other users via fast api auth
         await session.commit()
         await session.refresh(user)
         _print_user("✅ Promoted to assetwatch:", user)
