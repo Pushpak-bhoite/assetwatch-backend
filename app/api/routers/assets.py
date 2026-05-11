@@ -347,32 +347,83 @@ async def create_asset(
 
 @router.get(
     "/",
-    response_model=list[AssetResponse],
     dependencies=[Depends(check_permission("read", "asset"))]
 )
 async def get_all_assets(
+    page: int = Query(None, ge=1, description="Page number (1-indexed) - if not provided, returns all assets"),
+    limit: int = Query(None, ge=1, le=100, description="Number of items per page"),
+    sort_by: str = Query("created_at", description="Field to sort by"),
+    order: str = Query("desc", description="Sort order: asc or desc"),
+    search: str = Query(None, description="Search term for asset name"),
+    asset_type: str = Query(None, description="Filter by asset type"),
     db: AsyncSession = Depends(get_db),
     user: User = Depends(current_active_user)
 ):
     """
-    Get all assets for the current user.
+    Get all assets for the current user with optional pagination.
     
-    Returns a list of assets with basic info and monitor count.
-    Use GET /api/assets/{id} for detailed info including monitors.
+    If page and limit are provided, returns paginated results.
+    Otherwise, returns all assets (backward compatible).
+    
+    Query Parameters:
+    - page: Page number (1-indexed)
+    - limit: Items per page (default 10, max 100)
+    - sort_by: Field to sort by (name, asset_type, created_at, updated_at)
+    - order: Sort order (asc, desc)
+    - search: Search term for asset name
+    - asset_type: Filter by asset type
     
     Returns:
-        List of AssetResponse objects
+        Paginated response or list of AssetResponse objects
     """
-    # Query all assets belonging to current user, newest first
-    result = await db.execute(
-        select(Asset)
-        .where(Asset.user_id == user.id)
-        .order_by(Asset.created_at.desc())
-    )
+    from sqlalchemy import asc, desc as sql_desc
+    
+    # Map sortable fields
+    sortable_fields = {
+        "name": Asset.name,
+        "asset_type": Asset.asset_type,
+        "created_at": Asset.created_at,
+        "updated_at": Asset.updated_at,
+    }
+    
+    # Base query
+    query = select(Asset).where(Asset.user_id == user.id)
+    count_query = select(func.count(Asset.id)).where(Asset.user_id == user.id)
+    
+    # Apply search filter
+    if search:
+        search_filter = f"%{search}%"
+        query = query.where(Asset.name.ilike(search_filter))
+        count_query = count_query.where(Asset.name.ilike(search_filter))
+    
+    # Apply asset_type filter
+    if asset_type:
+        query = query.where(Asset.asset_type == asset_type)
+        count_query = count_query.where(Asset.asset_type == asset_type)
+    
+    # Get total count (for pagination)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+    
+    # Apply sorting
+    sort_column = sortable_fields.get(sort_by, Asset.created_at)
+    if order == "asc":
+        query = query.order_by(asc(sort_column))
+    else:
+        query = query.order_by(sql_desc(sort_column))
+    
+    # Apply pagination if page and limit are provided
+    is_paginated = page is not None and limit is not None
+    if is_paginated:
+        offset = (page - 1) * limit
+        query = query.offset(offset).limit(limit)
+    
+    # Execute query
+    result = await db.execute(query)
     assets = result.scalars().all()
     
     # Build response with monitor counts
-    response = []
+    response_items = []
     for asset in assets:
         # Count monitors attached to this asset
         monitor_count_result = await db.execute(
@@ -380,7 +431,7 @@ async def get_all_assets(
         )
         monitor_count = monitor_count_result.scalar() or 0
         
-        response.append({
+        response_items.append({
             "id": str(asset.id),
             "name": asset.name,
             "asset_type": asset.asset_type,
@@ -390,7 +441,19 @@ async def get_all_assets(
             "monitor_count": monitor_count
         })
     
-    return response
+    # Return paginated response or list based on request
+    if is_paginated:
+        total_pages = (total + limit - 1) // limit if total > 0 else 1
+        return {
+            "data": response_items,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "total_pages": total_pages
+        }
+    
+    # Backward compatible: return list if no pagination params
+    return response_items
 
 
 @router.get("/types/list")
