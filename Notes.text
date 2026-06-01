@@ -4,6 +4,7 @@
 Todo - 1. focus on availability, get this running once user adds this then according to check_interval it must keep going 
 2. Permit io
 3. Redis
+4. add voice support. 
 
 
 Organization = {
