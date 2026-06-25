@@ -1,4 +1,4 @@
 set up 
 
-SSH key is alreay set 
-set url with changing domain - git remote set-url origin git@github-personal:Pushpak-bhoite/FastAPI.git
+SSH key is already set 
+set url with changing domain - git remote add origin git@github-personal:Pushpak-bhoite/FastAPI.git

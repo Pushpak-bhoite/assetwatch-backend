@@ -132,6 +132,8 @@ async def ping_host(host: str, timeout: int = 2) -> tuple[bool, float]:
         
         # Run ping command asynchronously (non-blocking)
         start_time = datetime.now()
+        print("----------------------------------------------------")
+        print(f"param->{param}, timeout_param->{timeout_param}, host ->{host} ")
         process = await asyncio.create_subprocess_exec(
             "ping", param, "1", timeout_param, str(timeout), host,
             stdout=asyncio.subprocess.PIPE,
@@ -144,7 +146,13 @@ async def ping_host(host: str, timeout: int = 2) -> tuple[bool, float]:
             timeout=timeout + 1
         )
         end_time = datetime.now()
-        
+        print('***************************')
+        print(vars(process))
+        print(f"process->", process.pid)
+        print(f"process.returncode->", process.returncode)
+        print('process.stdout->', process.stdout)
+        print(dir(process))
+        print('---------------------')
         # Calculate actual response time
         response_time = (end_time - start_time).total_seconds() * 1000
         
