@@ -363,6 +363,10 @@ class StandaloneMonitor(Base):
     last_check_at = Column(DateTime, nullable=True)
     response_time = Column(Float, nullable=True)  # Last response time in ms
     
+    # Worker scheduling fields
+    next_check_at = Column(DateTime, nullable=True)  # When worker should check next
+    consecutive_failures = Column(Integer, default=0)  # Track failures before marking down
+    
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
