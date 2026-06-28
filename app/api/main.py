@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routers import users, posts, assets, users_list, observability
+from app.api.routers import users, posts, assets, users_list, observability, monitors
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -16,6 +16,9 @@ api_router.include_router(assets.router)
 
 # Observability routes (for AG Grid dashboard)
 api_router.include_router(observability.router)
+
+# Monitors routes (standalone monitoring tab)
+api_router.include_router(monitors.router)
 
 # api_router.include_router(posts.router) # commenting temporarly
 # api_router.include_router(login.router)

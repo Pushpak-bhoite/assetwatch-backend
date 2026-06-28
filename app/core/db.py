@@ -148,6 +148,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     # Relationships
     File_Posts = relationship("FilePost", back_populates="user")
     assets = relationship("Asset", back_populates="user")
+    standalone_monitors = relationship("StandaloneMonitor", back_populates="user", cascade="all, delete-orphan")
     
 
 class FilePost(Base):
@@ -309,6 +310,117 @@ class AvailabilityMetric(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     
     monitor = relationship("Monitor", back_populates="availability_metrics")
+
+
+# ==================== STANDALONE MONITOR MODELS (UptimeRobot-style) ====================
+
+class StandaloneMonitor(Base):
+    """
+    Standalone monitors for the Monitoring tab (UptimeRobot-style).
+    Unlike asset-attached monitors, these are independent and user-owned directly.
+    
+    Monitor Types:
+    - "http": HTTP(S) website/API monitoring
+    - "ping": ICMP ping monitoring
+    - "port": TCP port monitoring  
+    - "dns": DNS record monitoring
+    
+    These monitors are NOT attached to assets - they exist independently
+    and are designed for simple uptime/availability checking.
+    """
+    __tablename__ = "standalone_monitors"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=False)
+    
+    # Monitor type: http, ping, port, dns
+    monitor_type = Column(String, nullable=False, index=True)
+    
+    # User-friendly display name
+    friendly_name = Column(String, nullable=False)
+    
+    # Target to monitor (URL for http, IP/hostname for ping/port, hostname for dns)
+    target = Column(String, nullable=False)
+    
+    # Port monitoring specific fields
+    port = Column(Integer, nullable=True)  # TCP port number (1-65535)
+    port_name = Column(String, nullable=True)  # Service name e.g., "HTTP", "SSH", "MySQL"
+    
+    # DNS monitoring specific fields
+    dns_server = Column(String, nullable=True)  # DNS server to query (optional)
+    record_type = Column(String, nullable=True)  # A, AAAA, CNAME, MX, TXT, NS, SOA
+    expected_value = Column(String, nullable=True)  # Expected DNS response value
+    
+    # Notification settings
+    notify_email = Column(Integer, default=1)  # 1=enabled, 0=disabled
+    
+    # Check interval: 30s, 1m, 5m, 15m, 30m, 1hr, 12hr
+    check_interval = Column(String, default="5m", nullable=False)
+    
+    # Status tracking
+    is_active = Column(Integer, default=1)  # 1=active, 0=paused
+    current_status = Column(String, default="unknown")  # up, down, unknown
+    last_check_at = Column(DateTime, nullable=True)
+    response_time = Column(Float, nullable=True)  # Last response time in ms
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("User", back_populates="standalone_monitors")
+    tags = relationship("MonitorTag", back_populates="monitor", cascade="all, delete-orphan")
+    metrics = relationship("StandaloneMonitorMetric", back_populates="monitor", cascade="all, delete-orphan")
+
+
+class MonitorTag(Base):
+    """
+    Tags for organizing standalone monitors.
+    Many-to-one relationship: each tag belongs to one monitor,
+    but a monitor can have many tags.
+    """
+    __tablename__ = "monitor_tags"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    monitor_id = Column(UUID(as_uuid=True), ForeignKey("standalone_monitors.id"), nullable=False)
+    
+    # Tag value (e.g., "production", "critical", "api")
+    tag = Column(String, nullable=False, index=True)
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationship
+    monitor = relationship("StandaloneMonitor", back_populates="tags")
+
+
+class StandaloneMonitorMetric(Base):
+    """
+    Stores check history/metrics for standalone monitors.
+    
+    Each record represents a single check at a specific timestamp.
+    Used for calculating uptime percentage and response time trends.
+    """
+    __tablename__ = "standalone_monitor_metrics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    monitor_id = Column(UUID(as_uuid=True), ForeignKey("standalone_monitors.id"), nullable=False)
+    
+    # Check result
+    status = Column(String, nullable=False)  # "up" | "down"
+    response_time = Column(Float, nullable=True)  # Response time in ms
+    
+    # Error details (if down)
+    error_message = Column(Text, nullable=True)
+    
+    # DNS specific - actual resolved value
+    resolved_value = Column(String, nullable=True)
+    
+    # When this check was performed
+    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    
+    # Relationship
+    monitor = relationship("StandaloneMonitor", back_populates="metrics")
     
     
 # call this on app startup
