@@ -215,6 +215,22 @@ async def get_monitor_stats(
     )
 
 
+@router.get("/tags", response_model=list[str])
+async def get_all_tags(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """Get all unique tags used by the current user's monitors"""
+    tags_result = await db.execute(
+        select(MonitorTag.tag)
+        .join(StandaloneMonitor, MonitorTag.monitor_id == StandaloneMonitor.id)
+        .where(StandaloneMonitor.user_id == current_user.id)
+        .distinct()
+        .order_by(MonitorTag.tag)
+    )
+    return [row[0] for row in tags_result.fetchall()]
+
+
 @router.get("", response_model=PaginatedStandaloneMonitorsResponse)
 async def get_monitors(
     page: int = Query(1, ge=1, description="Page number"),
