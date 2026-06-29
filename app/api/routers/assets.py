@@ -89,7 +89,7 @@ from app.core.db import (
 )
 from app.users import current_active_user
 from app.api.dependencies import check_permission
-from app.schemas import (
+from app.api.routers.models.assets_models import (
     AssetCreate, AssetResponse, AssetUpdate, AssetDetailResponse,
     PerformanceMonitorCreate, AvailabilityMonitorCreate,
     MonitorResponse, MonitorUpdate,

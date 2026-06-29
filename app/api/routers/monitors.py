@@ -17,7 +17,7 @@ import re
 
 from app.core.db import User, StandaloneMonitor, MonitorTag, StandaloneMonitorMetric, get_db
 from app.users import current_active_user
-from app.schemas import (
+from app.api.routers.models.monitors_models import (
     HTTPMonitorCreate,
     PingMonitorCreate,
     PortMonitorCreate,

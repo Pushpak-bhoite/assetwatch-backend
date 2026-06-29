@@ -15,7 +15,7 @@ import uuid
 from app.api.dependencies import check_permission
 from app.core.db import User, get_db
 from app.users import current_active_user
-from app.api.routers.schemas.users_list_schemas import UserListItem, PaginatedUsersResponse
+from app.api.routers.models.users_list_models import UserListItem, PaginatedUsersResponse
 
 router = APIRouter(prefix="/users", tags=["users-list"])
 

@@ -1,7 +1,8 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from app.users import auth_backend, current_active_user, fastapi_users
-from app.schemas import PostCreate, PostResponse, UserRead, UserCreate, UserUpdate
+from app.api.routers.models.users_models import UserRead, UserCreate, UserUpdate
+from app.api.routers.models.posts_models import PostCreate, PostResponse
 
 router = APIRouter()
 

@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from contextlib import asynccontextmanager
 from sqlalchemy import select
 from app.images import imagekit
-from app.schemas import PostCreate, PostResponse, UserRead, UserCreate, UserUpdate
+from app.api.routers.models.posts_models import PostCreate, PostResponse
+from app.api.routers.models.users_models import UserRead, UserCreate, UserUpdate
 from app.core.db import Post, FilePost, User, create_db_and_tables, get_db
 from sqlalchemy import select 
 from app.users import auth_backend, current_active_user, fastapi_users

@@ -94,6 +94,7 @@ class PingChecker(BaseChecker):
             cmd = ["ping", "-c", str(PING_COUNT), "-W", str(PING_TIMEOUT), host]
         
         try:
+            # ######### Here is heart ########
             process = await asyncio.create_subprocess_exec(
                 *cmd,
                 stdout=asyncio.subprocess.PIPE,
