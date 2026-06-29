@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routers import users, posts, assets, users_list, observability, monitors
+from app.api.routers import users, posts, assets, users_list, observability, monitors, profile
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -10,6 +10,9 @@ api_router.include_router(users_list.router)
 
 # User management routes (registration, login, etc.)
 api_router.include_router(users.router)
+
+# Profile management routes (profile image upload/delete)
+api_router.include_router(profile.router)
 
 # Asset management routes
 api_router.include_router(assets.router)

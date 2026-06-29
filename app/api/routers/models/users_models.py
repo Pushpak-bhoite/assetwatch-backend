@@ -10,6 +10,7 @@ class UserRead(schemas.BaseUser[uuid.UUID]):
     name: str
     organization_type: str
     parent_organization_id: Optional[uuid.UUID] = None
+    profile_image_url: Optional[str] = None
 
 
 

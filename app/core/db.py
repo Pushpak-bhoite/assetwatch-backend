@@ -145,6 +145,9 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     # Parent org (for reseller_customer → points to reseller's user.id)
     parent_organization_id = Column(UUID(as_uuid=True), ForeignKey("user.id"), nullable=True)
     
+    # Profile image URL (stored via ImageKit)
+    profile_image_url = Column(String, nullable=True)
+    
     # Relationships
     File_Posts = relationship("FilePost", back_populates="user")
     assets = relationship("Asset", back_populates="user")
