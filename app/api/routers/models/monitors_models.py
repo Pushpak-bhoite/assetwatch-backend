@@ -141,3 +141,97 @@ class StandaloneMonitorMetricResponse(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+# ==================== MONITOR DETAILS PAGE SCHEMAS ====================
+
+class MonitorIncidentResponse(BaseModel):
+    """Schema for incident response"""
+    id: str
+    monitor_id: str
+    started_at: str
+    ended_at: Optional[str] = None
+    duration_seconds: Optional[int] = None
+    error_message: Optional[str] = None
+    check_count: int
+    is_resolved: bool
+    
+    class Config:
+        from_attributes = True
+
+
+class HourlyStatusPoint(BaseModel):
+    """Single hour status for 24-hour status dots"""
+    hour: int  # 0-23
+    timestamp: str  # Start of hour ISO
+    status: str  # "up" | "down" | "partial" | "no_data"
+    uptime_percentage: float  # 0-100
+    total_checks: int
+    failed_checks: int
+
+
+class HourlyStatusResponse(BaseModel):
+    """24-hour status summary"""
+    hours: list[HourlyStatusPoint]
+    total_incidents: int
+    total_downtime_minutes: int
+
+
+class MetricsChartPoint(BaseModel):
+    """Single data point for response time chart"""
+    timestamp: str
+    response_time: Optional[float] = None
+    status: str
+
+
+class MetricsChartResponse(BaseModel):
+    """Response time metrics for chart"""
+    data: list[MetricsChartPoint]
+    range: str  # "1h" | "24h" | "7d" | "30d"
+    avg_response_time: Optional[float] = None
+    min_response_time: Optional[float] = None
+    max_response_time: Optional[float] = None
+    uptime_percentage: float
+
+
+class MonitorDetailResponse(BaseModel):
+    """Extended monitor details for details page"""
+    # Basic info
+    id: str
+    user_id: str
+    monitor_type: str
+    friendly_name: str
+    target: str
+    tags: list[str]
+    notify_email: bool
+    check_interval: str
+    check_interval_seconds: int
+    is_active: bool
+    current_status: str
+    last_check_at: Optional[str] = None
+    response_time: Optional[float] = None
+    created_at: str
+    updated_at: str
+    
+    # Type-specific fields
+    port: Optional[int] = None
+    port_name: Optional[str] = None
+    dns_server: Optional[str] = None
+    record_type: Optional[str] = None
+    expected_value: Optional[str] = None
+    
+    # Computed stats (30 days)
+    uptime_percentage_30d: float
+    avg_response_time_30d: Optional[float] = None
+    total_checks_30d: int
+    total_incidents_30d: int
+    
+    # Current incident (if down)
+    current_incident: Optional[MonitorIncidentResponse] = None
+    consecutive_failures: int = 0
+    
+    # Last error (if any recent failure)
+    last_error: Optional[str] = None
+    
+    class Config:
+        from_attributes = True

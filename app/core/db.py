@@ -378,6 +378,7 @@ class StandaloneMonitor(Base):
     user = relationship("User", back_populates="standalone_monitors")
     tags = relationship("MonitorTag", back_populates="monitor", cascade="all, delete-orphan")
     metrics = relationship("StandaloneMonitorMetric", back_populates="monitor", cascade="all, delete-orphan")
+    incidents = relationship("MonitorIncident", back_populates="monitor", cascade="all, delete-orphan")
 
 
 class MonitorTag(Base):
@@ -428,7 +429,43 @@ class StandaloneMonitorMetric(Base):
     
     # Relationship
     monitor = relationship("StandaloneMonitor", back_populates="metrics")
+
+
+class MonitorIncident(Base):
+    """
+    Tracks downtime incidents for standalone monitors.
     
+    An incident is created when a monitor goes DOWN and closed when it comes back UP.
+    This enables incident history tracking and downtime duration calculations.
+    """
+    __tablename__ = "monitor_incidents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    monitor_id = Column(UUID(as_uuid=True), ForeignKey("standalone_monitors.id"), nullable=False)
+    
+    # Incident timing
+    started_at = Column(DateTime, nullable=False, index=True)  # When monitor went down
+    ended_at = Column(DateTime, nullable=True)  # When monitor recovered (null if ongoing)
+    
+    # Duration in seconds (calculated when incident ends)
+    duration_seconds = Column(Integer, nullable=True)
+    
+    # Error details
+    error_message = Column(Text, nullable=True)  # Initial error that caused downtime
+    
+    # Check attempts during incident
+    check_count = Column(Integer, default=1)  # Number of failed checks during incident
+    
+    # Resolution info
+    is_resolved = Column(Integer, default=0)  # 0=ongoing, 1=resolved
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationship
+    monitor = relationship("StandaloneMonitor", back_populates="incidents")
+
     
 # call this on app startup
 async def create_db_and_tables():

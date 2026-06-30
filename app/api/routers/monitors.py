@@ -27,6 +27,10 @@ from app.api.routers.models.monitors_models import (
     PaginatedStandaloneMonitorsResponse,
     StandaloneMonitorStats,
     StandaloneMonitorMetricResponse,
+    MonitorDetailResponse,
+    HourlyStatusResponse,
+    MetricsChartResponse,
+    MonitorIncidentResponse,
 )
 from app.api.routers.services.monitor_services import (
     # Constants
@@ -43,6 +47,11 @@ from app.api.routers.services.monitor_services import (
     build_monitor_response,
     create_tags,
     update_tags,
+    # Monitor details page services
+    get_monitor_detail,
+    get_hourly_status,
+    get_metrics_chart,
+    get_incidents,
 )
 
 router = APIRouter(prefix="/monitors", tags=["Standalone Monitors"])
@@ -577,3 +586,132 @@ async def get_dns_record_types():
     return {
         "record_types": DNS_RECORD_TYPES
     }
+
+
+# ==================== MONITOR DETAILS PAGE ENDPOINTS ====================
+
+@router.get("/{monitor_id}/detail", response_model=MonitorDetailResponse)
+async def get_monitor_details(
+    monitor_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """
+    Get extended monitor details for the details page.
+    
+    Includes:
+    - Basic monitor info
+    - 30-day uptime percentage
+    - Average response time (30 days)
+    - Total checks and incidents (30 days)
+    - Current incident info (if down)
+    - Last error message
+    """
+    # Verify monitor belongs to user
+    result = await db.execute(
+        select(StandaloneMonitor).where(
+            StandaloneMonitor.id == monitor_id,
+            StandaloneMonitor.user_id == current_user.id
+        )
+    )
+    monitor = result.scalars().first()
+    
+    if not monitor:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+    
+    detail = await get_monitor_detail(monitor_id, db)
+    if not detail:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+    
+    return detail
+
+
+@router.get("/{monitor_id}/hourly-status", response_model=HourlyStatusResponse)
+async def get_monitor_hourly_status(
+    monitor_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """
+    Get 24-hour status summary with hourly buckets.
+    
+    Returns status dots data for visualizing last 24 hours:
+    - Each hour bucket shows up/down/partial status
+    - Includes total incidents and downtime duration
+    """
+    # Verify monitor belongs to user
+    result = await db.execute(
+        select(StandaloneMonitor).where(
+            StandaloneMonitor.id == monitor_id,
+            StandaloneMonitor.user_id == current_user.id
+        )
+    )
+    monitor = result.scalars().first()
+    
+    if not monitor:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+    
+    return await get_hourly_status(monitor_id, db)
+
+
+@router.get("/{monitor_id}/chart", response_model=MetricsChartResponse)
+async def get_monitor_chart_data(
+    monitor_id: UUID,
+    range: str = Query(default="24h", regex="^(1h|24h|7d|30d)$", description="Time range"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """
+    Get response time metrics for chart visualization.
+    
+    Supports ranges: 1h, 24h, 7d, 30d
+    
+    Returns:
+    - Data points with timestamp, response time, and status
+    - Aggregated stats: avg, min, max response time
+    - Uptime percentage for the selected range
+    """
+    # Verify monitor belongs to user
+    result = await db.execute(
+        select(StandaloneMonitor).where(
+            StandaloneMonitor.id == monitor_id,
+            StandaloneMonitor.user_id == current_user.id
+        )
+    )
+    monitor = result.scalars().first()
+    
+    if not monitor:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+    
+    return await get_metrics_chart(monitor_id, db, range)
+
+
+@router.get("/{monitor_id}/incidents", response_model=list[MonitorIncidentResponse])
+async def get_monitor_incidents(
+    monitor_id: UUID,
+    limit: int = Query(default=20, ge=1, le=100, description="Number of incidents to return"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """
+    Get recent incidents (downtime events) for a monitor.
+    
+    Each incident includes:
+    - Start/end time
+    - Duration
+    - Error message
+    - Number of failed checks during the incident
+    """
+    # Verify monitor belongs to user
+    result = await db.execute(
+        select(StandaloneMonitor).where(
+            StandaloneMonitor.id == monitor_id,
+            StandaloneMonitor.user_id == current_user.id
+        )
+    )
+    monitor = result.scalars().first()
+    
+    if not monitor:
+        raise HTTPException(status_code=404, detail="Monitor not found")
+    
+    return await get_incidents(monitor_id, db, limit)

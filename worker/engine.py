@@ -17,7 +17,7 @@ from uuid import UUID
 from sqlalchemy import select, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.db import async_session_maker, StandaloneMonitor, StandaloneMonitorMetric
+from app.core.db import async_session_maker, StandaloneMonitor, StandaloneMonitorMetric, MonitorIncident
 from worker.checkers import run_check, CheckResult
 
 
@@ -152,19 +152,26 @@ async def update_monitor_status(
     Update monitor status based on check result.
     
     Implements consecutive failure tracking:
-    - On success: Reset failures, set status to "up"
-    - On failure: Increment failures, set status to "down" after threshold
+    - On success: Reset failures, set status to "up", close any open incident
+    - On failure: Increment failures, set status to "down" after threshold, create incident
     
     Args:
         monitor: The monitor to update
         result: Check result from checker
         session: Database session
     """
+    now = datetime.utcnow()
+    previous_status = monitor.current_status
+    
     if result.success:
         # Check succeeded
         monitor.current_status = "up"
         monitor.consecutive_failures = 0
         monitor.response_time = result.response_time
+        
+        # Close any open incident if transitioning from down to up
+        if previous_status == "down":
+            await close_open_incident(monitor.id, session)
     else:
         # Check failed
         monitor.consecutive_failures = (monitor.consecutive_failures or 0) + 1
@@ -172,6 +179,13 @@ async def update_monitor_status(
         # Only mark as down after consecutive failures threshold
         if monitor.consecutive_failures >= FAILURES_BEFORE_DOWN:
             monitor.current_status = "down"
+            
+            # Create incident if transitioning to down
+            if previous_status != "down":
+                await create_incident(monitor.id, result.error_message, session)
+            else:
+                # Update existing incident check count
+                await increment_incident_check_count(monitor.id, session)
         
         monitor.response_time = result.response_time
     
@@ -183,6 +197,63 @@ async def update_monitor_status(
         f"({result.response_time:.2f}ms)"
         + (f" - {result.error_message}" if result.error_message else "")
     )
+
+
+async def create_incident(
+    monitor_id: UUID,
+    error_message: Optional[str],
+    session: AsyncSession
+) -> None:
+    """Create a new incident when monitor goes down"""
+    incident = MonitorIncident(
+        monitor_id=monitor_id,
+        started_at=datetime.utcnow(),
+        error_message=error_message,
+        check_count=1,
+        is_resolved=0,
+    )
+    session.add(incident)
+
+
+async def close_open_incident(
+    monitor_id: UUID,
+    session: AsyncSession
+) -> None:
+    """Close any open incident when monitor recovers"""
+    result = await session.execute(
+        select(MonitorIncident).where(
+            and_(
+                MonitorIncident.monitor_id == monitor_id,
+                MonitorIncident.is_resolved == 0
+            )
+        ).order_by(MonitorIncident.started_at.desc()).limit(1)
+    )
+    incident = result.scalar_one_or_none()
+    
+    if incident:
+        now = datetime.utcnow()
+        incident.ended_at = now
+        incident.duration_seconds = int((now - incident.started_at).total_seconds())
+        incident.is_resolved = 1
+
+
+async def increment_incident_check_count(
+    monitor_id: UUID,
+    session: AsyncSession
+) -> None:
+    """Increment the check count for an ongoing incident"""
+    result = await session.execute(
+        select(MonitorIncident).where(
+            and_(
+                MonitorIncident.monitor_id == monitor_id,
+                MonitorIncident.is_resolved == 0
+            )
+        ).order_by(MonitorIncident.started_at.desc()).limit(1)
+    )
+    incident = result.scalar_one_or_none()
+    
+    if incident:
+        incident.check_count = (incident.check_count or 1) + 1
 
 
 async def record_metric(
