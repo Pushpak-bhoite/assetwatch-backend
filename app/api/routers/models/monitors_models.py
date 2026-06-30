@@ -51,6 +51,13 @@ class DNSMonitorCreate(StandaloneMonitorBase):
     expected_value: Optional[str] = Field(None, description="Expected DNS response value")
 
 
+class SparklinePoint(BaseModel):
+    """Single data point for sparkline visualization"""
+    response_time: Optional[float] = None  # null = failed/timeout
+    status: str  # "up" | "down"
+    timestamp: str
+
+
 class StandaloneMonitorUpdate(BaseModel):
     """Schema for updating a standalone monitor"""
     friendly_name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -95,6 +102,10 @@ class StandaloneMonitorResponse(BaseModel):
     dns_server: Optional[str] = None
     record_type: Optional[str] = None
     expected_value: Optional[str] = None
+    
+    # Sparkline data for response time visualization
+    sparkline_data: list[SparklinePoint] = []
+    sparkline_period: Optional[str] = None  # e.g., "last 15 mins", "last 2.5 hrs"
     
     class Config:
         from_attributes = True

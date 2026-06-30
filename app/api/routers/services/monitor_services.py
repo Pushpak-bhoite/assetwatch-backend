@@ -1,5 +1,5 @@
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from datetime import datetime, timedelta
@@ -10,6 +10,7 @@ from app.core.db import User, StandaloneMonitor, MonitorTag, StandaloneMonitorMe
 from app.users import current_active_user
 from app.api.routers.models.monitors_models import (
     StandaloneMonitorResponse,
+    SparklinePoint,
 )
 
 # ==================== CONSTANTS ====================
@@ -44,6 +45,33 @@ TCP_PORTS = {
 
 # DNS Record types
 DNS_RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "TXT", "NS", "SOA"]
+
+
+# ===================== SUB-HELPER FUNCTIONS =================================
+# Sparkline period label generators based on check interval
+# Returns human-readable time period for N data points
+def _format_sparkline_period(interval: str, point_count: int) -> str:
+    """Generate human-readable period label for sparkline data"""
+    interval_seconds = INTERVAL_OPTIONS.get(interval, 300)
+    total_seconds = interval_seconds * point_count
+    
+    if total_seconds < 60:
+        return f"last {total_seconds} secs"
+    elif total_seconds < 3600:
+        mins = total_seconds / 60
+        if mins == int(mins):
+            return f"last {int(mins)} mins"
+        return f"last {mins:.1f} mins"
+    elif total_seconds < 86400:
+        hrs = total_seconds / 3600
+        if hrs == int(hrs):
+            return f"last {int(hrs)} hrs"
+        return f"last {hrs:.1f} hrs"
+    else:
+        days = total_seconds / 86400
+        if days == int(days):
+            return f"last {int(days)} days"
+        return f"last {days:.1f} days"
 
 
 
@@ -118,6 +146,48 @@ async def calculate_uptime_percentage(
     return round((up_count / len(metrics)) * 100, 2)
 
 
+async def get_sparkline_data(
+    monitor_id: UUID,
+    check_interval: str,
+    db: AsyncSession,
+    limit: int = 30
+) -> tuple[list[SparklinePoint], Optional[str]]:
+    """
+    Fetch last N metrics for sparkline visualization.
+    Returns (sparkline_points, period_label)
+    
+    Returns empty list and None if < 2 data points available.
+    """
+    result = await db.execute(
+        select(StandaloneMonitorMetric)
+        .where(StandaloneMonitorMetric.monitor_id == monitor_id)
+        .order_by(desc(StandaloneMonitorMetric.timestamp))
+        .limit(limit)
+    )
+    metrics = result.scalars().all()
+    
+    # Need at least 2 points for a meaningful sparkline
+    if len(metrics) < 2:
+        return [], None
+    
+    # Reverse to chronological order (oldest first for left-to-right display)
+    metrics = list(reversed(metrics))
+    
+    # Calculate period label based on actual data points
+    period_label = _format_sparkline_period(check_interval, len(metrics))
+    
+    sparkline_points = [
+        SparklinePoint(
+            response_time=m.response_time,
+            status=m.status,
+            timestamp=m.timestamp.isoformat()
+        )
+        for m in metrics
+    ]
+    
+    return sparkline_points, period_label
+
+
 async def build_monitor_response(
     monitor: StandaloneMonitor,
     db: AsyncSession
@@ -125,6 +195,13 @@ async def build_monitor_response(
     """Build response object for a monitor"""
     tags = await get_tags_list(monitor.id, db)
     uptime = await calculate_uptime_percentage(monitor.id, db)
+    
+    # Get sparkline data (last 30 checks)
+    sparkline_data, sparkline_period = await get_sparkline_data(
+        monitor.id,
+        monitor.check_interval,
+        db
+    )
     
     return StandaloneMonitorResponse(
         id=str(monitor.id),
@@ -148,6 +225,8 @@ async def build_monitor_response(
         dns_server=monitor.dns_server,
         record_type=monitor.record_type,
         expected_value=monitor.expected_value,
+        sparkline_data=sparkline_data,
+        sparkline_period=sparkline_period,
     )
 
 
