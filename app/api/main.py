@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.routers import users, posts, assets, users_list, observability, monitors, profile, dashboard
+from app.api.routers import users, posts, assets, users_list, observability, monitors, profile, dashboard, beacon
 from app.core.config import settings
 
 api_router = APIRouter()
@@ -25,6 +25,9 @@ api_router.include_router(monitors.router)
 
 # Dashboard routes (monitoring dashboard)
 api_router.include_router(dashboard.router)
+
+# Beacon chatbot routes
+api_router.include_router(beacon.router)
 
 # api_router.include_router(posts.router) # commenting temporarly
 # api_router.include_router(login.router)
