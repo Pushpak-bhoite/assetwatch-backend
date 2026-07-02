@@ -25,8 +25,8 @@ def parse_cors(v: Any) -> list[str] | str:
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        # Use top level .env file (one level above ./backend/)
-        env_file="../.env",
+        # Use .env file in current directory
+        env_file=".env",
         env_ignore_empty=True,
         extra="ignore",
     )
@@ -76,6 +76,9 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str | None = None
     EMAILS_FROM_EMAIL: EmailStr | None = None
     EMAILS_FROM_NAME: str | None = None
+    
+    # SendGrid configuration
+    SENDGRID_API_KEY: str | None = None
 
     @model_validator(mode="after")
     def _set_default_emails_from(self) -> Self:
@@ -88,7 +91,10 @@ class Settings(BaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def emails_enabled(self) -> bool:
-        return bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+        # Email is enabled if SendGrid is configured OR SMTP is configured
+        sendgrid_enabled = bool(self.SENDGRID_API_KEY and self.EMAILS_FROM_EMAIL)
+        smtp_enabled = bool(self.SMTP_HOST and self.EMAILS_FROM_EMAIL)
+        return sendgrid_enabled or smtp_enabled
 
     EMAIL_TEST_USER: EmailStr = "test@example.com"
     FIRST_SUPERUSER: EmailStr

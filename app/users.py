@@ -14,6 +14,7 @@ from fastapi_users.authentication import (
 from fastapi_users.db import SQLAlchemyUserDatabase
 from app.core.db import Organization, User, get_user_db
 from app.core.permit_service import sync_organization_to_permit, sync_user_to_permit
+from app.core.email_service import email_service
 
 SECRET ="PushpakSecret"
 
@@ -45,13 +46,39 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             organization_type=user.organization_type
         )
         
+        # Step 3: Auto-request email verification for newly registered user
+        # This will generate token and call on_after_request_verify which sends the email
+        if email_service.is_configured and not user.is_verified:
+            try:
+                await self.request_verify(user, request)
+            except Exception as e:
+                print(f"[UserManager] Could not auto-request verification: {e}")
+        
     async def on_after_forgot_password(self, user: User, token:str, request:Optional[Request] = None):
-        """Called when user requests password reset."""
-        print(f"User {user.id} has forgot their password. Reset token {token}")
+        """Called when user requests password reset. Send reset email."""
+        print(f"User {user.id} has forgot their password. Reset token generated.")
+        
+        # Send password reset email
+        success = await email_service.send_password_reset_email(
+            to_email=user.email,
+            token=token
+        )
+        print('success->>>>>>>',success)
+        if not success:
+            print(f"[UserManager] Failed to send password reset email to {user.email}")
         
     async def on_after_request_verify(self, user:User, token:str, request: Optional[Request]= None):
-        """Called when user requests email verification."""
-        print(f"Verification requested for user {user.id}. Verification token: {token}")
+        """Called when user requests email verification. Send verification email."""
+        print(f"Verification requested for user {user.id}. Sending verification email.")
+        
+        # Send verification email
+        success = await email_service.send_verification_email(
+            to_email=user.email,
+            token=token
+        )
+        
+        if not success:
+            print(f"[UserManager] Failed to send verification email to {user.email}")
         
 # we have defined this function to manage user 
 async def get_user_manager(user_db: SQLAlchemyUserDatabase =Depends(get_user_db)):
