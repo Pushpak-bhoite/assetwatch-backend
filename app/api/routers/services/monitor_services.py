@@ -453,19 +453,26 @@ async def get_metrics_chart(
     db: AsyncSession,
     range_str: str = "24h"
 ) -> MetricsChartResponse:
-    """Get metrics for response time chart"""
-    # Parse range
+    """Get metrics for response time chart.
+    
+    Aggregates data into time buckets to avoid overwhelming the chart:
+    - 1h: Raw data (no aggregation)
+    - 24h: Aggregate by 15 minutes
+    - 7d: Aggregate by 2 hours  
+    - 30d: Aggregate by 8 hours
+    """
+    # Parse range - (time_delta, bucket_size or None for raw)
     range_map = {
-        "1h": timedelta(hours=1),
-        "24h": timedelta(hours=24),
-        "7d": timedelta(days=7),
-        "30d": timedelta(days=30),
+        "1h": (timedelta(hours=1), None),  # Raw data
+        "24h": (timedelta(hours=24), timedelta(minutes=15)),  # 96 buckets max
+        "7d": (timedelta(days=7), timedelta(hours=2)),  # 84 buckets max
+        "30d": (timedelta(days=30), timedelta(hours=8)),  # 90 buckets max
     }
     
     if range_str not in range_map:
         range_str = "24h"
     
-    time_delta = range_map[range_str]
+    time_delta, bucket_size = range_map[range_str]
     since = datetime.utcnow() - time_delta
     
     # Get metrics
@@ -477,17 +484,62 @@ async def get_metrics_chart(
     )
     metrics = result.scalars().all()
     
-    # Build data points
-    data = [
-        MetricsChartPoint(
-            timestamp=m.timestamp.isoformat(),
-            response_time=m.response_time,
-            status=m.status,
+    if not metrics:
+        return MetricsChartResponse(
+            data=[],
+            range=range_str,
+            avg_response_time=None,
+            min_response_time=None,
+            max_response_time=None,
+            uptime_percentage=100.0,
         )
-        for m in metrics
-    ]
     
-    # Calculate stats
+    # Build data points - aggregate if bucket_size is specified
+    if bucket_size is None:
+        # Raw data for short ranges
+        data = [
+            MetricsChartPoint(
+                timestamp=m.timestamp.isoformat(),
+                response_time=m.response_time,
+                status=m.status,
+            )
+            for m in metrics
+        ]
+    else:
+        # Aggregate into time buckets
+        bucket_seconds = int(bucket_size.total_seconds())
+        buckets: dict[datetime, list] = {}
+        
+        for metric in metrics:
+            # Round timestamp to bucket
+            ts = metric.timestamp
+            # Calculate bucket start time
+            epoch_seconds = int(ts.timestamp())
+            bucket_epoch = (epoch_seconds // bucket_seconds) * bucket_seconds
+            bucket_ts = datetime.utcfromtimestamp(bucket_epoch)
+            
+            if bucket_ts not in buckets:
+                buckets[bucket_ts] = []
+            buckets[bucket_ts].append(metric)
+        
+        # Build aggregated data points
+        data = []
+        for ts in sorted(buckets.keys()):
+            bucket_metrics = buckets[ts]
+            
+            response_times = [m.response_time for m in bucket_metrics if m.response_time is not None]
+            # If any check in bucket failed, mark as down
+            has_failure = any(m.status == "down" for m in bucket_metrics)
+            
+            avg_rt = round(sum(response_times) / len(response_times), 2) if response_times else None
+            
+            data.append(MetricsChartPoint(
+                timestamp=ts.isoformat(),
+                response_time=avg_rt,
+                status="down" if has_failure else "up",
+            ))
+    
+    # Calculate stats from all raw metrics
     response_times = [m.response_time for m in metrics if m.response_time is not None]
     avg_response = round(sum(response_times) / len(response_times), 2) if response_times else None
     min_response = round(min(response_times), 2) if response_times else None
