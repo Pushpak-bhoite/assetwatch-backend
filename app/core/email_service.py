@@ -238,6 +238,115 @@ class EmailService:
             html_content=html_content
         )
 
+    async def send_invitation_email(
+        self, 
+        to_email: str, 
+        inviter_name: str,
+        organization_type: str,
+        personal_message: str = None
+    ) -> bool:
+        """
+        Send invitation email to a new user.
+        
+        Args:
+            to_email: Invitee's email address
+            inviter_name: Name of the person sending the invitation
+            organization_type: Role/type the invitee will have
+            personal_message: Optional personal message from the inviter
+            
+        Returns:
+            True if sent successfully
+        """
+        register_link = f"{self.frontend_host}/sign-up"
+        
+        # Map organization types to display names
+        role_labels = {
+            "customer": "Customer",
+            "reseller": "Reseller",
+            "reseller_customer": "Reseller Customer",
+            "assetwatch": "AssetWatch Admin"
+        }
+        role_display = role_labels.get(organization_type, organization_type)
+        
+        # Build personal message section if provided
+        personal_message_html = ""
+        if personal_message:
+            personal_message_html = f"""
+                <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px; margin: 20px 0; border-radius: 0 5px 5px 0;">
+                    <p style="font-size: 14px; color: #555; margin: 0; font-style: italic;">
+                        "{personal_message}"
+                    </p>
+                    <p style="font-size: 12px; color: #888; margin: 10px 0 0 0;">
+                        — {inviter_name}
+                    </p>
+                </div>
+            """
+        
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">You're Invited! 🎉</h1>
+            </div>
+            
+            <div style="background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                <p style="font-size: 16px;">Hello,</p>
+                
+                <p style="font-size: 16px;">
+                    <strong>{inviter_name}</strong> has invited you to join AssetWatch as a <strong>{role_display}</strong>.
+                </p>
+                
+                {personal_message_html}
+                
+                <p style="font-size: 16px;">
+                    AssetWatch is a powerful network infrastructure monitoring platform that helps you keep track of your assets and ensure everything is running smoothly.
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="{register_link}" 
+                       style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                              color: white; 
+                              padding: 14px 30px; 
+                              text-decoration: none; 
+                              border-radius: 25px; 
+                              font-weight: bold;
+                              font-size: 16px;
+                              display: inline-block;">
+                        Accept Invitation & Sign Up
+                    </a>
+                </div>
+                
+                <p style="font-size: 14px; color: #666;">If the button doesn't work, copy and paste this link into your browser:</p>
+                <p style="font-size: 12px; word-break: break-all; background: #f5f5f5; padding: 10px; border-radius: 5px;">
+                    <a href="{register_link}" style="color: #667eea;">{register_link}</a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+                
+                <p style="font-size: 14px; color: #666;">
+                    <strong>What happens next?</strong><br>
+                    Click the link above to create your account. Use this email address (<strong>{to_email}</strong>) when signing up to ensure your account is properly linked.
+                </p>
+            </div>
+            
+            <div style="text-align: center; padding: 20px; color: #888; font-size: 12px;">
+                <p>&copy; {self.from_name}. All rights reserved.</p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        return await self.send_email(
+            to_email=to_email,
+            subject=f"You're invited to join AssetWatch by {inviter_name}",
+            html_content=html_content
+        )
+
 
 # Global email service instance
 email_service = EmailService()

@@ -2,7 +2,7 @@
 Schemas for Users List API
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 
@@ -28,3 +28,17 @@ class PaginatedUsersResponse(BaseModel):
     page: int
     limit: int
     total_pages: int
+
+
+class UserInviteRequest(BaseModel):
+    """Schema for inviting a user via email"""
+    email: EmailStr
+    organization_type: str
+    message: Optional[str] = None
+
+
+class UserInviteResponse(BaseModel):
+    """Schema for invite response"""
+    success: bool
+    message: str
+    email: str

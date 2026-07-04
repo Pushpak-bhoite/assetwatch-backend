@@ -1,3 +1,4 @@
+
 # AssetWatch Backend - Codebase Documentation
 
 > **For Developers & LLM Agents**: This document provides a complete overview of the AssetWatch backend codebase. Use this as your primary reference to understand the architecture, folder structure, and how components interact.

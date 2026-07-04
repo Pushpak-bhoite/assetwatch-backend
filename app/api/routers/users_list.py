@@ -6,7 +6,7 @@ Designed for AG Grid server-side row model integration.
 """
 
 from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy import select, func, asc, desc
+from sqlalchemy import select, func, asc, desc, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Literal
 from datetime import datetime
@@ -15,7 +15,8 @@ import uuid
 from app.api.dependencies import check_permission
 from app.core.db import User, get_db
 from app.users import current_active_user
-from app.api.routers.models.users_list_models import UserListItem, PaginatedUsersResponse
+from app.api.routers.models.users_list_models import UserListItem, PaginatedUsersResponse, UserInviteRequest, UserInviteResponse
+from app.core.email_service import email_service
 
 router = APIRouter(prefix="/users", tags=["users-list"])
 
@@ -64,6 +65,22 @@ async def list_users(
     # Base query
     query = select(User)
     count_query = select(func.count(User.id))
+    
+    # Apply organization hierarchy filter based on current user's role
+    # - assetwatch: can see all users (customers, resellers, reseller_customers, and other admins)
+    # - reseller: can see their own reseller_customers (parent_organization_id = their id)
+    # - customer/reseller_customer: can only see themselves
+    if current_user.organization_type == "assetwatch":
+        # AssetWatch admins see ALL users
+        pass  # No filter needed
+    elif current_user.organization_type == "reseller":
+        # Resellers see their own reseller_customers
+        query = query.where(User.parent_organization_id == current_user.id)
+        count_query = count_query.where(User.parent_organization_id == current_user.id)
+    else:
+        # Customers and reseller_customers can only see themselves
+        query = query.where(User.id == current_user.id)
+        count_query = count_query.where(User.id == current_user.id)
     
     # Apply search filter
     if search:
@@ -130,4 +147,65 @@ async def list_users(
         page=page,
         limit=limit,
         total_pages=total_pages,
+    )
+
+
+@router.post("/invite",
+             response_model=UserInviteResponse,
+             dependencies=[Depends(check_permission("create", "asset"))]
+             )
+async def invite_user(
+    invite_data: UserInviteRequest,
+    session: AsyncSession = Depends(get_db),
+    current_user: User = Depends(current_active_user),
+):
+    """
+    Send an invitation email to a new user.
+    
+    The invited user will receive an email with a link to register.
+    
+    - **email**: Email address to send the invitation to
+    - **organization_type**: Role the invitee will have (customer, reseller, reseller_customer)
+    - **message**: Optional personal message to include in the email
+    """
+    
+    # Validate organization_type
+    valid_types = ["customer", "reseller", "reseller_customer"]
+    if invite_data.organization_type not in valid_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid organization type. Must be one of: {', '.join(valid_types)}"
+        )
+    
+    # Check if user already exists
+    existing_user = await session.execute(
+        select(User).where(User.email == invite_data.email)
+    )
+    if existing_user.scalar_one_or_none():
+        raise HTTPException(
+            status_code=400,
+            detail="A user with this email address already exists"
+        )
+    
+    # Send invitation email
+    email_sent = await email_service.send_invitation_email(
+        to_email=invite_data.email,
+        inviter_name=current_user.name or current_user.email,
+        organization_type=invite_data.organization_type,
+        personal_message=invite_data.message
+    )
+    
+    if not email_sent:
+        # Even if email fails, we return success but with a note
+        # This is because the email service might not be configured in dev
+        return UserInviteResponse(
+            success=True,
+            message="Invitation created, but email could not be sent. Please check email configuration.",
+            email=invite_data.email
+        )
+    
+    return UserInviteResponse(
+        success=True,
+        message="Invitation sent successfully",
+        email=invite_data.email
     )
