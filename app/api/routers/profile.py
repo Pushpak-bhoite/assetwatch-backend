@@ -7,11 +7,29 @@ import os
 import tempfile
 from app.users import current_active_user
 
-router = APIRouter(prefix="/users", tags=["Profile"])
+router = APIRouter(prefix="/profile", tags=["Profile"])
 
 # Allowed image types and max size (5MB)
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"}
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
+
+
+def extract_file_id_from_url(url: str) -> str | None:
+    """
+    Extract ImageKit file ID from URL.
+    ImageKit URLs look like: https://ik.imagekit.io/your_id/profiles/profile_uuid_filename.jpg
+    The file path after the endpoint can be used to search for the file.
+    """
+    if not url:
+        return None
+    # Extract the path after imagekit URL
+    # We'll use the filename to search for the file
+    try:
+        # Get filename from URL
+        filename = url.split('/')[-1]
+        return filename
+    except:
+        return None
 
 
 def validate_image(file: UploadFile) -> None:
@@ -35,7 +53,7 @@ def validate_image(file: UploadFile) -> None:
         )
 
 
-@router.post("/profile-image")
+@router.post("/image")
 async def upload_profile_image(
     file: UploadFile = File(...),
     user: User = Depends(current_active_user),
@@ -90,7 +108,7 @@ async def upload_profile_image(
         file.file.close()
 
 
-@router.get("/profile-image")
+@router.get("/image")
 async def get_profile_image(
     user: User = Depends(current_active_user)
 ):
@@ -104,23 +122,42 @@ async def get_profile_image(
     }
 
 
-@router.delete("/profile-image")
+@router.delete("/image")
 async def delete_profile_image(
     user: User = Depends(current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Delete user's profile image.
-    
-    Note: This only removes the URL from database.
-    ImageKit files are not deleted (can be managed via ImageKit dashboard).
+    Delete user's profile image from both database and ImageKit.
     """
     if not user.profile_image_url:
         raise HTTPException(status_code=404, detail="No profile image to delete")
     
+    old_url = user.profile_image_url
+    
     try:
+        # Remove from database first
         user.profile_image_url = None
         await db.commit()
+        
+        # Try to delete from ImageKit
+        try:
+            # Search for the file in ImageKit by name pattern
+            filename = extract_file_id_from_url(old_url)
+            if filename:
+                # Search for files matching the profile image name using assets.list
+                search_result = imagekit.assets.list(
+                    search_query=f'name="{filename}"',
+                    limit=1
+                )
+                
+                if search_result and len(search_result) > 0:
+                    file_id = search_result[0].file_id
+                    imagekit.files.delete(file_id=file_id)
+                    print(f"Deleted ImageKit file: {file_id}")
+        except Exception as ik_error:
+            # Log but don't fail if ImageKit deletion fails
+            print(f"Warning: Could not delete from ImageKit: {ik_error}")
         
         return {
             "success": True,
