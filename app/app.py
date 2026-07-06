@@ -11,10 +11,18 @@ from sqlalchemy import select
 from app.users import auth_backend, current_active_user, fastapi_users
 from app.api.main import api_router
 from app.core.config import settings
+from scripts.setup_initial_org import create_superuser_if_not_exists
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    print("=" * 50)
+    print(f"FRONTEND_HOST: {settings.FRONTEND_HOST}")
+    print(f"CORS Origins: {settings.all_cors_origins}")
+    print(f"ENVIRONMENT: {settings.ENVIRONMENT}")
+    print("=" * 50)
     await create_db_and_tables()
+    await create_superuser_if_not_exists()
     yield
 
 app = FastAPI(lifespan=lifespan,

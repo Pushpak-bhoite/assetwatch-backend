@@ -2,17 +2,24 @@
 Setup script to create/check the assetwatch super admin.
 User IS the org — user.id = org_id, user.email = org_email, user.name = org_name.
 
-Usage:
-    python scripts/setup_initial_org.py                         # check status + create db
-    python scripts/setup_initial_org.py --assign-user <email>   # promote user + create db
+Usage (standalone):
+    python -m scripts.setup_initial_org                         # check status + create db
+    python -m scripts.setup_initial_org --assign-user <email>   # promote user + create db
+    
+Imported by app startup:
+    from scripts.setup_initial_org import create_superuser_if_not_exists
+    await create_superuser_if_not_exists()
 """
 
-import asyncio, os, sys
+import asyncio
+import os
+import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from dotenv import load_dotenv
-load_dotenv()
+# Only add path when running as standalone script
+if __name__ == "__main__":
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from dotenv import load_dotenv
+    load_dotenv()
 
 from app.core.db import User, async_session_maker, create_db_and_tables
 from app.core.permit_service import sync_organization_to_permit, sync_user_to_permit
@@ -34,6 +41,58 @@ async def _get_user_by(session, **kwargs):
         select(User).where(getattr(User, key) == value)
     )
     return result.scalars().first()
+
+
+async def create_superuser_if_not_exists():
+    """
+    Create superuser from FIRST_SUPERUSER env vars if it doesn't exist.
+    Called automatically on app startup.
+    """
+    from app.core.config import settings
+    
+    async with async_session_maker() as session:
+        # Check if superuser already exists
+        result = await session.execute(
+            select(User).where(User.email == settings.FIRST_SUPERUSER)
+        )
+        existing_user = result.scalars().first()
+        
+        if existing_user:
+            print(f"✅ Superuser already exists: {settings.FIRST_SUPERUSER}")
+            return existing_user
+        
+        # Create superuser
+        from fastapi_users.password import PasswordHelper
+        
+        password_helper = PasswordHelper()
+        hashed_password = password_helper.hash(settings.FIRST_SUPERUSER_PASSWORD)
+        
+        superuser = User(
+            email=settings.FIRST_SUPERUSER,
+            hashed_password=hashed_password,
+            is_active=True,
+            is_verified=True,
+            is_superuser=True,
+            name="AssetWatch Admin",
+            organization_type="assetwatch",
+        )
+        
+        session.add(superuser)
+        await session.commit()
+        await session.refresh(superuser)
+        
+        print(f"✅ Superuser created: {settings.FIRST_SUPERUSER}")
+        
+        # Sync to Permit.io
+        try:
+            uid = str(superuser.id)
+            await sync_organization_to_permit(uid, "assetwatch", superuser.name)
+            await sync_user_to_permit(uid, superuser.email, uid, "assetwatch")
+            print("✅ Superuser synced to Permit.io")
+        except Exception as e:
+            print(f"⚠️ Permit.io sync failed (non-critical): {e}")
+        
+        return superuser
 
 
 async def check_status():
