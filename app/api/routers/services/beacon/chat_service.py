@@ -143,6 +143,7 @@ class BeaconChatService:
         if query_type == "greeting":
             return (
                 "Hey! 👋 I'm Beacon, your AssetWatch assistant. "
+                "I can help you with monitors, dashboards, and user management. "
                 "What can I help you with today?"
             )
         
@@ -150,7 +151,7 @@ class BeaconChatService:
         if query_type == "out_of_scope":
             return (
                 "I'm Beacon, your AssetWatch assistant! I specialize in helping with "
-                "network monitoring - assets, monitors, metrics, and platform features. "
+                "monitors, dashboards, users, and incidents. "
                 "For other topics, I'd recommend checking appropriate resources. "
                 "How can I help you with AssetWatch today?"
             )

@@ -1,7 +1,7 @@
 """
 Beacon Context Builder
 
-Builds context from user's database (assets, monitors, metrics)
+Builds context from user's database (monitors, metrics, dashboard data)
 for personalized responses.
 """
 
@@ -20,7 +20,7 @@ class ContextBuilder:
     Builds context from user's data for Beacon responses.
     
     Queries the database to get relevant information about the user's
-    assets, monitors, and recent metrics.
+    monitors, metrics, and dashboard data.
     """
     
     def __init__(self, db: AsyncSession, user_id: UUID):
@@ -36,35 +36,21 @@ class ContextBuilder:
     
     async def build_summary_context(self) -> str:
         """
-        Build a summary context of all user's data.
+        Build a summary context of user's monitoring data.
         
         Returns:
-            Formatted string with user's asset and monitor summary
+            Formatted string with user's monitor summary (primary focus)
         """
         context_parts = []
         
-        # Get all assets
+        # Get all assets (needed to fetch monitors)
         assets_result = await self.db.execute(
             select(Asset).where(Asset.user_id == self.user_id)
         )
         assets = assets_result.scalars().all()
         
         if not assets:
-            return "User has no assets configured yet."
-        
-        # Build asset summary
-        context_parts.append(f"## User's Assets Summary")
-        context_parts.append(f"Total Assets: {len(assets)}")
-        
-        # Group by type
-        asset_types = {}
-        for asset in assets:
-            asset_type = asset.asset_type.split("-")[0] if "-" in asset.asset_type else asset.asset_type
-            asset_types[asset_type] = asset_types.get(asset_type, 0) + 1
-        
-        context_parts.append("\nAsset Types:")
-        for atype, count in asset_types.items():
-            context_parts.append(f"- {atype}: {count}")
+            return "User has no monitors configured yet. They can start by creating a monitor to track their services."
         
         # Get all monitors
         asset_ids = [a.id for a in assets]
@@ -73,7 +59,8 @@ class ContextBuilder:
         )
         monitors = monitors_result.scalars().all()
         
-        context_parts.append(f"\n## Monitors Summary")
+        # Monitors Summary (Primary Focus)
+        context_parts.append(f"## Monitors Summary")
         context_parts.append(f"Total Monitors: {len(monitors)}")
         
         if monitors:
@@ -82,85 +69,90 @@ class ContextBuilder:
             down_count = sum(1 for m in monitors if m.current_status == "down")
             unknown_count = sum(1 for m in monitors if m.current_status == "unknown")
             
-            context_parts.append(f"- UP: {up_count}")
-            context_parts.append(f"- DOWN: {down_count}")
-            context_parts.append(f"- Unknown: {unknown_count}")
+            context_parts.append(f"- ✅ UP: {up_count}")
+            context_parts.append(f"- ⚠️ DOWN: {down_count}")
+            if unknown_count > 0:
+                context_parts.append(f"- Unknown: {unknown_count}")
             
             # Count by type
             perf_count = sum(1 for m in monitors if m.monitor_type == "performance")
             avail_count = sum(1 for m in monitors if m.monitor_type == "availability")
             context_parts.append(f"\nMonitor Types:")
-            context_parts.append(f"- Performance: {perf_count}")
-            context_parts.append(f"- Availability: {avail_count}")
-        
-        # Asset details
-        context_parts.append(f"\n## Asset Details")
-        for asset in assets[:10]:  # Limit to 10 for context size
-            asset_monitors = [m for m in monitors if m.asset_id == asset.id]
-            status_str = ""
-            if asset_monitors:
-                statuses = [m.current_status for m in asset_monitors]
-                if "down" in statuses:
-                    status_str = "⚠️ Has DOWN monitors"
-                elif all(s == "up" for s in statuses):
-                    status_str = "✅ All UP"
-                else:
-                    status_str = "⏳ Mixed status"
+            context_parts.append(f"- Performance Monitors: {perf_count}")
+            context_parts.append(f"- Availability Monitors: {avail_count}")
             
-            context_parts.append(f"\n**{asset.name}** ({asset.asset_type})")
-            context_parts.append(f"  - Monitors: {len(asset_monitors)} {status_str}")
-            if asset.description:
-                context_parts.append(f"  - Description: {asset.description[:100]}")
-        
-        if len(assets) > 10:
-            context_parts.append(f"\n... and {len(assets) - 10} more assets")
+            # List monitors with issues first
+            down_monitors = [m for m in monitors if m.current_status == "down"]
+            if down_monitors:
+                context_parts.append(f"\n## Monitors Needing Attention")
+                for m in down_monitors[:5]:
+                    asset = next((a for a in assets if a.id == m.asset_id), None)
+                    asset_name = asset.name if asset else "Unknown"
+                    last_check = m.last_check_at.strftime('%Y-%m-%d %H:%M') if m.last_check_at else "Never"
+                    context_parts.append(
+                        f"- **{m.target}** ({m.monitor_type}) - DOWN since {last_check}"
+                    )
+            
+            # List healthy monitors
+            up_monitors = [m for m in monitors if m.current_status == "up"]
+            if up_monitors:
+                context_parts.append(f"\n## Healthy Monitors")
+                for m in up_monitors[:5]:
+                    context_parts.append(f"- {m.target} ({m.monitor_type}) - UP")
+                if len(up_monitors) > 5:
+                    context_parts.append(f"  ... and {len(up_monitors) - 5} more")
+        else:
+            context_parts.append("No monitors configured yet.")
         
         return "\n".join(context_parts)
     
-    async def build_asset_context(self, asset_name: Optional[str] = None) -> str:
+    async def build_monitor_context(self, target: Optional[str] = None) -> str:
         """
-        Build detailed context for a specific asset or all assets.
+        Build detailed context for monitors.
         
         Args:
-            asset_name: Optional asset name to filter by
+            target: Optional target/URL to filter by
             
         Returns:
-            Formatted string with asset details
+            Formatted string with monitor details
         """
-        query = select(Asset).where(Asset.user_id == self.user_id)
-        
-        if asset_name:
-            query = query.where(Asset.name.ilike(f"%{asset_name}%"))
-        
-        result = await self.db.execute(query)
-        assets = result.scalars().all()
+        # Get all assets for this user
+        assets_result = await self.db.execute(
+            select(Asset).where(Asset.user_id == self.user_id)
+        )
+        assets = assets_result.scalars().all()
         
         if not assets:
-            return f"No assets found{' matching: ' + asset_name if asset_name else ''}"
+            return "No monitors found. Create a monitor to start tracking your services."
+        
+        asset_ids = [a.id for a in assets]
+        query = select(Monitor).where(Monitor.asset_id.in_(asset_ids))
+        
+        if target:
+            query = query.where(Monitor.target.ilike(f"%{target}%"))
+        
+        result = await self.db.execute(query)
+        monitors = result.scalars().all()
+        
+        if not monitors:
+            return f"No monitors found{' matching: ' + target if target else ''}"
         
         context_parts = []
+        context_parts.append(f"## Monitor Details ({len(monitors)} total)")
         
-        for asset in assets[:5]:  # Limit for context size
-            context_parts.append(f"\n## Asset: {asset.name}")
-            context_parts.append(f"Type: {asset.asset_type}")
-            context_parts.append(f"Description: {asset.description or 'None'}")
-            context_parts.append(f"Created: {asset.created_at.strftime('%Y-%m-%d')}")
+        for m in monitors[:10]:  # Limit for context size
+            asset = next((a for a in assets if a.id == m.asset_id), None)
+            last_check = m.last_check_at.strftime('%Y-%m-%d %H:%M') if m.last_check_at else "Never"
+            status_icon = "✅" if m.current_status == "up" else "⚠️" if m.current_status == "down" else "❓"
             
-            # Get monitors
-            monitors_result = await self.db.execute(
-                select(Monitor).where(Monitor.asset_id == asset.id)
-            )
-            monitors = monitors_result.scalars().all()
-            
-            if monitors:
-                context_parts.append(f"\nMonitors ({len(monitors)}):")
-                for m in monitors:
-                    last_check = m.last_check_at.strftime('%Y-%m-%d %H:%M') if m.last_check_at else "Never"
-                    context_parts.append(
-                        f"- {m.monitor_type.title()} → {m.target} | "
-                        f"Status: {m.current_status.upper()} | "
-                        f"Last Check: {last_check}"
-                    )
+            context_parts.append(f"\n**{m.target}**")
+            context_parts.append(f"  - Type: {m.monitor_type.title()}")
+            context_parts.append(f"  - Status: {status_icon} {m.current_status.upper()}")
+            context_parts.append(f"  - Last Check: {last_check}")
+            context_parts.append(f"  - Check Interval: {m.check_interval}s")
+        
+        if len(monitors) > 10:
+            context_parts.append(f"\n... and {len(monitors) - 10} more monitors")
         
         return "\n".join(context_parts)
     
@@ -181,7 +173,7 @@ class ContextBuilder:
         assets = assets_result.scalars().all()
         
         if not assets:
-            return "No assets to show metrics for."
+            return "No monitors to show metrics for."
         
         asset_ids = [a.id for a in assets]
         monitors_result = await self.db.execute(
@@ -245,10 +237,10 @@ class ContextBuilder:
     
     async def build_full_context(self) -> str:
         """
-        Build comprehensive context combining summary, assets, and metrics.
+        Build comprehensive context combining monitor summary and metrics.
         
         Returns:
-            Full context string for the LLM
+            Full context string for the LLM (monitors-focused)
         """
         summary = await self.build_summary_context()
         metrics = await self.build_metrics_context(days=1)
