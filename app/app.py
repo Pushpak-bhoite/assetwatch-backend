@@ -7,11 +7,10 @@ from app.images import imagekit
 from app.api.routers.models.posts_models import PostCreate, PostResponse
 from app.api.routers.models.users_models import UserRead, UserCreate, UserUpdate
 from app.core.db import Post, FilePost, User, create_db_and_tables, get_db
-from sqlalchemy import select 
 from app.users import auth_backend, current_active_user, fastapi_users
 from app.api.main import api_router
 from app.core.config import settings
-from scripts.setup_initial_org import create_superuser_if_not_exists
+from scripts import create_superuser_if_not_exists
 
 
 @asynccontextmanager
@@ -23,7 +22,29 @@ async def lifespan(app: FastAPI):
     print("=" * 50)
     await create_db_and_tables()
     await create_superuser_if_not_exists()
+    
+#================== Start background worker in production (embedded mode for free tier) =============
+    scheduler = None
+    if settings.ENVIRONMENT == "production":
+        try:
+            from worker.scheduler import create_scheduler, start_scheduler
+            scheduler = create_scheduler()
+            start_scheduler(scheduler)
+            print("✅ Background worker scheduler started (embedded mode)")
+        except Exception as e:
+            print(f"⚠️ Failed to start worker scheduler: {e}")
+    
     yield
+    
+    # Cleanup on shutdown
+    if scheduler:
+        try:
+            from worker.scheduler import shutdown_scheduler
+            shutdown_scheduler(scheduler)
+            print("✅ Background worker scheduler stopped")
+        except Exception as e:
+            print(f"⚠️ Failed to stop worker scheduler: {e}")
+# ================================================
 
 app = FastAPI(lifespan=lifespan,
             docs_url="/api/docs",  #these extra 2 lines are for updating faastapi's docs with base endpoint /api since defauld start with just / 
