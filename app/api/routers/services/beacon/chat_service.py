@@ -69,7 +69,7 @@ class BeaconChatService:
         """
         try:
             response = self.client.chat.completions.create(
-                model="gemini-2.0-flash",
+                model="gemini-3.5-flash",
                 messages=[
                     {
                         "role": "user",
@@ -83,7 +83,7 @@ class BeaconChatService:
             classification = response.choices[0].message.content.strip().lower()
             
             # Validate classification
-            valid_classes = ["documentation", "user_data", "both", "out_of_scope"]
+            valid_classes = ["greeting", "documentation", "user_data", "both", "out_of_scope"]
             if classification not in valid_classes:
                 # Default to both if unclear
                 return "both"
@@ -139,7 +139,14 @@ class BeaconChatService:
         query_type = await self._classify_query(message)
         print(f"🔍 Query classified as: {query_type}")
         
-        # Step 2: Handle out of scope
+        # Step 2: Handle greetings with a simple friendly response
+        if query_type == "greeting":
+            return (
+                "Hey! 👋 I'm Beacon, your AssetWatch assistant. "
+                "What can I help you with today?"
+            )
+        
+        # Step 3: Handle out of scope
         if query_type == "out_of_scope":
             return (
                 "I'm Beacon, your AssetWatch assistant! I specialize in helping with "
@@ -148,7 +155,7 @@ class BeaconChatService:
                 "How can I help you with AssetWatch today?"
             )
         
-        # Step 3: Build context based on query type
+        # Step 4: Build context based on query type
         doc_context = ""
         user_context = ""
         
@@ -164,10 +171,10 @@ class BeaconChatService:
             # Get user's data context
             user_context = await self.context_builder.build_full_context()
         
-        # Step 4: Build history string
+        # Step 5: Build history string
         history_str = self._build_history_string(history)
         
-        # Step 5: Generate response
+        # Step 6: Generate response
         full_prompt = RESPONSE_PROMPT.format(
             doc_context=doc_context or "No documentation context.",
             user_context=user_context or "No user data context.",
@@ -177,7 +184,7 @@ class BeaconChatService:
         
         try:
             response = self.client.chat.completions.create(
-                model="gemini-2.0-flash",
+                model="gemini-3.5-flash",
                 messages=[
                     {"role": "system", "content": BEACON_SYSTEM_PROMPT},
                     {"role": "user", "content": full_prompt}

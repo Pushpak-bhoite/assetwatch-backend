@@ -63,7 +63,6 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
             to_email=user.email,
             token=token
         )
-        print('success->>>>>>>',success)
         if not success:
             print(f"[UserManager] Failed to send password reset email to {user.email}")
         

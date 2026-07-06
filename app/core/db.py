@@ -38,8 +38,8 @@ from fastapi_users.db import SQLAlchemyUserDatabase, SQLAlchemyBaseUserTableUUID
 # Async SQLite URL
 DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-# Engine with echo=True for SQL logging (disable in production)
-engine = create_async_engine(DATABASE_URL, echo=True)
+# Engine with echo=False to disable SQL logging
+engine = create_async_engine(DATABASE_URL, echo=False)
 # Session maker for async database operations
 async_session_maker = async_sessionmaker(engine, expire_on_commit=False)
 

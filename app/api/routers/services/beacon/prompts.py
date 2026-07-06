@@ -25,8 +25,9 @@ BEACON_SYSTEM_PROMPT = """You are Beacon, the friendly AI assistant for AssetWat
 
 ## Response Guidelines
 - Keep responses under 200 words unless user asks for detail
-- Use bullet points for lists
-- When showing data, format it clearly
+- Use dash (-) for bullet points, NOT asterisk (*)
+- Use **bold** for emphasis on key terms
+- When showing data, format it clearly with line breaks
 - If you don't know something, say so honestly
 
 ## Out of Scope Response
@@ -45,10 +46,13 @@ Use this context to provide accurate, personalized answers.
 QUERY_CLASSIFIER_PROMPT = """Classify this user query into one of these categories:
 
 Categories:
+- "greeting": Simple greetings, hellos, or conversation starters (e.g., "hi", "hey", "hello", "hey buddy", "what's up")
 - "documentation": Questions about how AssetWatch works, features, asset types, monitor types
 - "user_data": Questions about the user's specific assets, monitors, metrics, status
 - "both": Questions that need both documentation AND user data context
 - "out_of_scope": Questions unrelated to AssetWatch or network monitoring
+
+IMPORTANT: If the message is just a greeting without any specific question, classify it as "greeting".
 
 Query: {query}
 
