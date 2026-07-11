@@ -1,89 +1,237 @@
-# 🚀 AssetWatch Backend - REST API Server
+# 🚀 Infrastructure Watchdog - Website Monitoring System
 
-> A high-performance backend API for the AssetWatch asset management system, built with FastAPI and Python. Handles real-time data streaming, AI-powered analytics, and robust asset management.
+> A powerful, intelligent website monitoring platform with real-time alerts, AI-powered analytics, and comprehensive uptime tracking. Monitor your infrastructure like UptimeRobot, with advanced features.
 
-**[Frontend Repo](https://github.com/Pushpak-bhoite/assetwatch-frontend)**
+**[🌐 Live Demo](https://assetwatch-frontend.bhoitepushpak6.workers.dev)** | **[Frontend Repo](https://github.com/Pushpak-bhoite/assetwatch-frontend)**
 
 ---
 
-## ✨ Features
+## ✨ Core Features
 
-- ⚡ **High Performance** - Built with FastAPI for async request handling
-- 🔐 **Secure Authentication** - JWT token-based authorization
-- 📊 **Real-Time Data** - WebSocket support for live updates
-- 🤖 **AI Integration** - Beacon AI assistant for insights
-- 📈 **Asset Management** - Complete CRUD operations for assets
-- 🔔 **Alert System** - Real-time price change notifications
-- 📝 **Batch Operations** - Efficient bulk asset processing
-- 📚 **API Documentation** - Auto-generated Swagger UI
-- 🗄️ **MongoDB** - Flexible data storage
-- 🧪 **Testing** - Comprehensive test coverage
+- 🔍 **4 Monitor Types**
+  - HTTP/HTTPS Monitoring - Track website uptime & response times
+  - DNS Monitoring - Monitor domain resolution
+  - TCP/Port Monitoring - Verify service availability
+  - SSL Certificate Monitoring - Track certificate expiration
+
+- 📊 **Real-Time Dashboard** - Live status visualization with performance metrics
+- 📈 **Advanced Analytics** - Detailed uptime reports, response time trends, and insights
+- 🤖 **AI Assistant (Beacon)** - RAG-powered intelligent recommendations & anomaly detection
+- 👥 **4 User Roles** - Admin, Operator, Viewer, and Restricted access levels
+- 🔔 **Real-Time Alerts** - Instant notifications for downtime & status changes
+- 📝 **Batch Operations** - Manage multiple monitors efficiently
+- 🔐 **OAuth2 Authentication** - Secure, industry-standard auth via FastAPI's built-in system
+- 📱 **Responsive UI** - Works seamlessly on desktop and mobile
+- ⚡ **High Performance** - Optimized for reliability and speed
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Framework**: FastAPI (Python 3.10+)
-- **Database**: MongoDB
-- **Authentication**: JWT (PyJWT)
-- **Password Hashing**: Bcrypt
-- **ORM**: Motor (async MongoDB driver)
-- **API Documentation**: Swagger UI / OpenAPI
-- **WebSockets**: FastAPI WebSockets
-- **Task Queue**: Celery (optional)
+### Backend
+- **Framework**: FastAPI (Python 3.10+) - High-performance async framework
+- **Database**: SQLite (currently) → PostgreSQL (planned migration)
+- **Package Manager**: `uv` - Lightning-fast Python package management
+- **Authentication**: OAuth2 with FastAPI's built-in security
+- **AI/ML**: RAG (Retrieval-Augmented Generation) for Beacon AI
+- **Real-Time**: WebSockets for live monitor updates
+- **API Documentation**: Auto-generated OpenAPI/Swagger UI
 - **Testing**: Pytest
+
+### Frontend
+- **React.js** - Modern UI library with hooks
+- **TypeScript** - Type-safe development
+- **Vite** - Next-generation build tool
+- **ShadcnUI** - High-quality React components
+- **TailwindCSS** - Utility-first CSS framework
+- **Radix UI** - Accessible component primitives
+- **TanStack Router** - Modern React routing
+- **Recharts** - Data visualization
+
+### DevOps
+- **Cloudflare Workers** - Edge computing deployment
+- **Docker** - Container orchestration
+- **Git** - Version control
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
 - Python 3.10+
-- MongoDB 4.0+
-- pip or conda
+- Node.js (v16+)
+- `uv` package manager
 
-### Installation
+### Backend Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/Pushpak-bhoite/assetwatch-backend.git
-
-# Navigate to project directory
 cd assetwatch-backend
 
 # Create virtual environment
-python -m venv venv
+uv venv
 
 # Activate virtual environment
-# On macOS/Linux:
-source venv/bin/activate
-# On Windows:
-venv\Scripts\activate
+source .venv/bin/activate
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies with uv
+uv pip install -r requirements.txt
 
-# Create .env file
+# Set up environment variables
 cat > .env << EOF
-MONGODB_URI=mongodb://localhost:27017/assetwatch
-JWT_SECRET=your_super_secret_key_here
-JWT_ALGORITHM=HS256
+DATABASE_URL=sqlite:///./assetwatch.db
+# FUTURE: DATABASE_URL=postgresql://user:password@localhost/assetwatch
+SECRET_KEY=your_super_secret_key_here
+ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 DEBUG=True
 PORT=8000
+BEACON_API_KEY=your_api_key
 EOF
 
 # Run the application
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-The API will be available at `http://localhost:8000`
-
-### API Documentation
-
+API available at `http://localhost:8000`
 - **Swagger UI**: `http://localhost:8000/docs`
 - **ReDoc**: `http://localhost:8000/redoc`
+
+### Frontend Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/Pushpak-bhoite/assetwatch-frontend.git
+cd assetwatch-frontend
+
+# Install dependencies
+pnpm install
+
+# Set environment variables
+echo "VITE_API_URL=http://localhost:8000" > .env.local
+echo "VITE_WS_URL=ws://localhost:8000" >> .env.local
+
+# Start development server
+pnpm run dev
+```
+
+App available at `http://localhost:5173`
+
+---
+
+## 📊 Monitor Types Explained
+
+### 1. **HTTP/HTTPS Monitoring**
+- Monitor website uptime and response times
+- Track status code changes (2xx, 3xx, 4xx, 5xx)
+- Performance metrics: latency, throughput
+- Custom headers and request body support
+
+### 2. **DNS Monitoring**
+- Verify domain name resolution
+- Monitor DNS response times
+- Track DNS record changes
+- Multi-region DNS checking
+
+### 3. **TCP/Port Monitoring**
+- Monitor service availability on specific ports
+- Connection timeout detection
+- Service health verification
+- Support for custom protocols
+
+### 4. **SSL Certificate Monitoring**
+- Track SSL/TLS certificate expiration
+- Certificate validity verification
+- Early warning system for renewals
+- Chain validation and trust analysis
+
+---
+
+## 👥 User Roles & Permissions
+
+| Role | Create Monitors | Edit All | View Reports | Manage Users | Alerts |
+|------|-----------------|----------|-------------|--------------|--------|
+| **Admin** | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Operator** | ✅ | Own only | ✅ | ❌ | ✅ |
+| **Viewer** | ❌ | ❌ | ✅ | ❌ | View only |
+| **Restricted** | ❌ | ❌ | Limited | ❌ | Specific |
+
+---
+
+## 🤖 Beacon AI Assistant
+
+RAG-powered intelligent assistant providing:
+- **Anomaly Detection** - Identify unusual uptime patterns
+- **Root Cause Analysis** - Suggest why services went down
+- **Performance Insights** - Recommendations to improve uptime
+- **Predictive Alerts** - Alert before predicted outages
+- **Natural Language Queries** - Ask questions about your infrastructure
+
+Example:
+```
+User: "Why did my website go down yesterday?"
+Beacon: "Your site experienced 2 outages:
+  - 14:32 UTC: DB connection timeout (2 min)
+  - 15:45 UTC: High CPU usage spike (5 min)
+  Recommendation: Add connection pooling & auto-scaling"
+```
+
+---
+
+## 🔌 API Endpoints
+
+### Authentication (OAuth2)
+
+```
+POST   /api/auth/token              - Get access token
+POST   /api/auth/refresh            - Refresh token
+GET    /api/auth/me                 - Current user info
+```
+
+### Monitors
+
+```
+GET    /api/monitors                - List all monitors
+POST   /api/monitors                - Create new monitor
+GET    /api/monitors/{id}           - Get monitor details
+PUT    /api/monitors/{id}           - Update monitor
+DELETE /api/monitors/{id}           - Delete monitor
+POST   /api/monitors/batch          - Batch operations
+
+GET    /api/monitors/{id}/status    - Get current status
+GET    /api/monitors/{id}/history   - Uptime history
+GET    /api/monitors/{id}/stats     - Analytics & stats
+```
+
+### Alerts
+
+```
+GET    /api/alerts                  - List alerts
+POST   /api/alerts                  - Create alert rule
+GET    /api/alerts/{id}             - Alert details
+PUT    /api/alerts/{id}             - Update alert
+DELETE /api/alerts/{id}             - Delete alert
+```
+
+### Analytics & AI
+
+```
+GET    /api/analytics/dashboard     - Dashboard metrics
+GET    /api/analytics/reports       - Detailed reports
+POST   /api/analytics/beacon        - Ask Beacon AI
+GET    /api/analytics/trends        - Trend analysis
+```
+
+### Users (Admin)
+
+```
+GET    /api/users                   - List users
+POST   /api/users                   - Create user
+PUT    /api/users/{id}              - Update user
+DELETE /api/users/{id}              - Delete user
+PUT    /api/users/{id}/role         - Change user role
+```
 
 ---
 
@@ -94,28 +242,34 @@ assetwatch-backend/
 ├── app/
 │   ├── api/
 │   │   ├── routes/
-│   │   │   ├── assets.py        # Asset endpoints
-│   │   │   ├── auth.py          # Authentication endpoints
-│   │   │   ├── users.py         # User management
-│   │   │   └── analytics.py     # Analytics & AI
-│   │   └── dependencies.py       # Dependency injection
+│   │   │   ├── monitors.py         # Monitor endpoints
+│   │   │   ├── auth.py             # OAuth2 auth
+│   │   │   ├── alerts.py           # Alert rules
+│   │   │   ├── users.py            # User management
+│   │   │   └── analytics.py        # Analytics & Beacon AI
+│   │   └── dependencies.py         # Dependency injection
 │   ├── models/
-│   │   ├── asset.py             # Asset schema
-│   │   ├── user.py              # User schema
-│   │   └── schemas.py           # Pydantic models
+│   │   ├── monitor.py              # Monitor schema
+│   │   ├── user.py                 # User schema
+│   │   ├── alert.py                # Alert schema
+│   │   └── schemas.py              # Pydantic models
 │   ├── core/
-│   │   ├── config.py            # Configuration
-│   │   ├── security.py          # JWT & Auth
-│   │   └── exceptions.py        # Custom exceptions
+│   │   ├── config.py               # Configuration
+│   │   ├── security.py             # OAuth2 & security
+│   │   └── exceptions.py           # Custom exceptions
 │   ├── db/
-│   │   ├── mongodb.py           # DB connection
-│   │   └── models.py            # DB models
+│   │   ├── session.py              # DB session
+│   │   └── base.py                 # Base models
+│   ├── services/
+│   │   ├── monitor_service.py      # Monitor logic
+│   │   ├── beacon_service.py       # RAG AI logic
+│   │   └── alert_service.py        # Alert logic
 │   └── ws/
-│       └── websocket.py         # WebSocket handlers
+│       └── websocket.py            # WebSocket handlers
 ├── tests/
-│   ├── test_api.py
+│   ├── test_monitors.py
 │   ├── test_auth.py
-│   └── test_assets.py
+│   └── test_alerts.py
 ├── requirements.txt
 ├── main.py
 └── README.md
@@ -123,130 +277,50 @@ assetwatch-backend/
 
 ---
 
-## 🔌 API Endpoints
+## 🔐 OAuth2 Authentication
 
-### Authentication
-
-```
-POST   /api/auth/register          - Register new user
-POST   /api/auth/login             - Login with credentials
-POST   /api/auth/refresh           - Refresh access token
-POST   /api/auth/logout            - Logout user
-GET    /api/auth/me                - Get current user profile
-```
-
-### Assets
-
-```
-GET    /api/assets                 - List all assets
-POST   /api/assets                 - Create new asset
-GET    /api/assets/{id}            - Get asset details
-PUT    /api/assets/{id}            - Update asset
-DELETE /api/assets/{id}            - Delete asset
-POST   /api/assets/batch           - Batch create/update assets
-```
-
-### Users
-
-```
-GET    /api/users                  - List all users (admin only)
-GET    /api/users/{id}             - Get user details
-PUT    /api/users/{id}             - Update user profile
-DELETE /api/users/{id}             - Delete user (admin)
-```
-
-### Analytics & AI
-
-```
-GET    /api/analytics/portfolio    - Portfolio analysis
-GET    /api/analytics/trends       - Market trends
-POST   /api/analytics/beacon       - Get AI insights
-GET    /api/analytics/alerts       - Get price alerts
-```
-
----
-
-## 📊 Data Models
-
-### User Schema
-
-```python
-{
-  "id": "ObjectId",
-  "username": "string",
-  "email": "string",
-  "password_hash": "string",
-  "first_name": "string",
-  "last_name": "string",
-  "created_at": "datetime",
-  "updated_at": "datetime",
-  "is_active": "boolean"
-}
-```
-
-### Asset Schema
-
-```python
-{
-  "id": "ObjectId",
-  "user_id": "ObjectId",
-  "name": "string",
-  "symbol": "string",
-  "quantity": "float",
-  "purchase_price": "float",
-  "current_price": "float",
-  "category": "string",
-  "created_at": "datetime",
-  "updated_at": "datetime"
-}
-```
-
----
-
-## 🔐 Authentication
-
-The API uses JWT (JSON Web Tokens) for authentication:
+Secure authentication using FastAPI's built-in OAuth2 implementation:
 
 ```bash
-# Get access token
-curl -X POST http://localhost:8000/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"username": "user", "password": "pass"}'
+# Login
+curl -X POST http://localhost:8000/api/auth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "username=user&password=pass"
 
 # Response
 {
   "access_token": "eyJhbGciOiJIUzI1NiIs...",
-  "token_type": "bearer"
+  "token_type": "bearer",
+  "expires_in": 1800
 }
 
 # Use token in requests
-curl http://localhost:8000/api/assets \
+curl http://localhost:8000/api/monitors \
   -H "Authorization: Bearer <access_token>"
 ```
 
 ---
 
-## 🌐 WebSocket Events
-
-Real-time data streaming via WebSocket:
+## 🌐 Real-Time Updates via WebSocket
 
 ```python
 # Connect to WebSocket
-ws://localhost:8000/ws/stream/{user_id}
+ws://localhost:8000/ws/monitors/{user_id}
 
 # Receive events
 {
-  "type": "price_update",
-  "asset_id": "...",
-  "price": 1234.56,
+  "type": "monitor_status_change",
+  "monitor_id": "...",
+  "status": "down",
+  "response_time": 5000,
   "timestamp": "2024-01-15T10:30:00Z"
 }
 
 {
-  "type": "alert",
-  "asset_id": "...",
-  "message": "Price increased by 5%",
-  "timestamp": "2024-01-15T10:30:00Z"
+  "type": "alert_triggered",
+  "monitor_id": "...",
+  "message": "Website down for 2 minutes",
+  "severity": "critical"
 }
 ```
 
@@ -262,10 +336,10 @@ pytest
 pytest --cov=app
 
 # Run specific test file
-pytest tests/test_api.py -v
+pytest tests/test_monitors.py -v
 
-# Run with markers
-pytest -m "auth"
+# Run specific test
+pytest tests/test_monitors.py::test_create_monitor -v
 ```
 
 ---
@@ -285,105 +359,122 @@ docker run -p 8000:8000 --env-file .env assetwatch-backend
 ### Environment Variables
 
 ```env
-# Database
-MONGODB_URI=mongodb+srv://user:password@cluster.mongodb.net/assetwatch
+# Database (SQLite for now, PostgreSQL later)
+DATABASE_URL=sqlite:///./assetwatch.db
+# DATABASE_URL=postgresql://user:pass@localhost/assetwatch
 
 # Security
-JWT_SECRET=your_secret_key
-JWT_ALGORITHM=HS256
+SECRET_KEY=your_secret_key
+ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # Application
 DEBUG=False
 PORT=8000
-CORS_ORIGINS=["https://assetwatch-frontend.com"]
+CORS_ORIGINS=["https://assetwatch-frontend.bhoitepushpak6.workers.dev"]
 
-# External Services
-AI_API_KEY=your_api_key
-PRICE_API_KEY=your_api_key
+# AI Services
+BEACON_API_KEY=your_api_key
+OPENAI_API_KEY=for_rag_embeddings
+
+# Monitoring
+MAX_MONITORS_PER_USER=100
+CHECK_INTERVAL_SECONDS=60
 ```
 
 ---
 
 ## 🔧 Development
 
-### Install development dependencies
+### Install with uv
 
 ```bash
-pip install -r requirements-dev.txt
+# Install all dependencies
+uv pip install -r requirements.txt
+
+# Add new dependency
+uv pip install package_name
 ```
 
-### Code formatting
+### Code Quality
 
 ```bash
 # Format with Black
 black app/
 
-# Check with Flake8
+# Lint with Flake8
 flake8 app/
 
 # Type checking with Mypy
 mypy app/
 ```
 
-### Run with auto-reload
+### Database Migrations (when on PostgreSQL)
 
 ```bash
-uvicorn main:app --reload
+# Install Alembic
+uv pip install alembic
+
+# Create migration
+alembic revision --autogenerate -m "Add new column"
+
+# Apply migration
+alembic upgrade head
 ```
 
 ---
 
-## 📈 Performance Tips
+## 📈 Performance Optimization
 
-- Database indexes on frequently queried fields
-- Caching with Redis for expensive operations
-- Async database operations with Motor
-- Query optimization and pagination
-- Lazy loading of related data
+- ✅ Async/await throughout for concurrent monitor checks
+- ✅ Connection pooling for database
+- ✅ Caching with Redis (future)
+- ✅ Background tasks with Celery (future)
+- ✅ Batch database operations
+- ✅ Lazy loading and pagination
 
 ---
 
 ## 🐛 Troubleshooting
 
-### MongoDB Connection Issues
+### Database Issues
 ```bash
-# Check MongoDB is running
-mongod --version
+# Check SQLite database
+sqlite3 assetwatch.db ".tables"
 
-# Test connection
-python -c "from pymongo import MongoClient; MongoClient('mongodb://localhost:27017')"
+# Future: PostgreSQL connection
+psql -h localhost -U user -d assetwatch
 ```
 
-### JWT Token Errors
-- Verify JWT_SECRET is set correctly
-- Check token expiration time
-- Ensure Authorization header format: `Bearer <token>`
+### OAuth2 Token Errors
+- Verify SECRET_KEY is set
+- Check token expiration (default: 30 min)
+- Ensure `Authorization: Bearer <token>` format
 
-### CORS Errors
-- Update CORS_ORIGINS in environment
-- Check frontend URL matches configuration
+### Monitor Check Failures
+- Verify internet connectivity
+- Check firewall rules for outbound connections
+- Review monitor configuration in dashboard
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome!
+Contributions welcome! Process:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Write tests for new features
-5. Run tests to ensure everything passes
-6. Commit changes (`git commit -m 'Add amazing feature'`)
-7. Push to branch
-8. Open a Pull Request
+1. Fork repository
+2. Create feature branch (`git checkout -b feature/amazing-feature`)
+3. Write tests for new features
+4. Run all tests: `pytest`
+5. Commit: `git commit -m 'Add amazing feature'`
+6. Push: `git push origin feature/amazing-feature`
+7. Open Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see LICENSE file for details.
+MIT License - see LICENSE file for details.
 
 ---
 
@@ -391,24 +482,23 @@ This project is licensed under the MIT License - see LICENSE file for details.
 
 **Pushpak Bhoite**
 - GitHub: [@Pushpak-bhoite](https://github.com/Pushpak-bhoite)
+- Email: bhoitepushpak6@gmail.com
 
 ---
 
-## 📞 Support
+## 📞 Support & Feedback
 
-Need help? 
-- Check API documentation at `/docs`
-- Open an issue on GitHub
-- Review existing issues for solutions
+- 🐛 Found a bug? Open an issue
+- 💡 Have ideas? Start a discussion
+- 📧 Questions? Email me
+
+⭐ If you like this project, please star the repository!
 
 ---
 
 ## 🙏 Acknowledgments
 
-- [FastAPI](https://fastapi.tiangolo.com) - Modern web framework
-- [MongoDB](https://www.mongodb.com) - Document database
+- [FastAPI](https://fastapi.tiangolo.com) - Modern async web framework
+- [SQLite](https://www.sqlite.org) / [PostgreSQL](https://www.postgresql.org) - Databases
+- [UptimeRobot](https://uptimerobot.com) - Inspiration
 - [Pydantic](https://pydantic-docs.helpmanual.io) - Data validation
-
----
-
-⭐ If you found this helpful, please star the repository!
