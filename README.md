@@ -1,4 +1,4 @@
-# 🚀 Infrastructure Watchdog - Website Monitoring System
+# 🚀 AssetWatch - Real-Time Monitoring Platform
 
 > A powerful, intelligent website monitoring platform with real-time alerts, AI-powered analytics, and comprehensive uptime tracking. Monitor your infrastructure like UptimeRobot, with advanced features.
 
