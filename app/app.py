@@ -16,9 +16,7 @@ from scripts import create_superuser_if_not_exists
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("=" * 50)
-    print(f"FRONTEND_HOST: {settings.FRONTEND_HOST}")
     print(f"CORS Origins: {settings.all_cors_origins}")
-    print(f"ENVIRONMENT: {settings.ENVIRONMENT}")
     print("=" * 50)
     await create_db_and_tables()
     await create_superuser_if_not_exists()
