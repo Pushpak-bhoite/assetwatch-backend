@@ -12,7 +12,6 @@ ln4 = ListNode(4)
 ln1.next = ln2
 ln2.next = ln3
 ln3.next = ln2
-# with two pointer approach, slow and fast always meet at starting of the chain or ending. 
 class Solution:
     def check_cycle_starting_point(self, head: ListNode):
         fast = head
