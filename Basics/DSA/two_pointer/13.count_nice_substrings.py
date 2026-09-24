@@ -19,8 +19,8 @@ def numberOfOddSubarrays(nums, k): # nice substring means counting number of odd
     return cnt
 
 # nums = [4, 8, 2] 
-# k = 1
+# k = 1 
 nums = [1, 1, 2, 1, 1]
-k = 3
+k = 3 
 print(numberOfOddSubarrays( nums, k))
         
