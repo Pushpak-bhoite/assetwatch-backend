@@ -166,7 +166,7 @@ async def remove_user_from_permit(user_id: str) -> bool:
         print(f"❌ Failed to remove user from Permit.io: {e}")
         return False
 
-
+    
 # =============================================================================
 # PERMISSION CHECK FUNCTIONS
 # =============================================================================

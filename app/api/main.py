@@ -1,5 +1,4 @@
 from fastapi import APIRouter
-
 from app.api.routers import users, posts, assets, users_list, observability, monitors, profile, dashboard, beacon
 from app.core.config import settings
 

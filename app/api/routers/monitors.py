@@ -56,7 +56,6 @@ from app.api.routers.services.monitor_services import (
 
 router = APIRouter(prefix="/monitors", tags=["Standalone Monitors"])
 
-
 # ==================== ENDPOINTS ====================
 
 @router.get("/stats", response_model=StandaloneMonitorStats)
