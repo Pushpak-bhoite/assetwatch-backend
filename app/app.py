@@ -58,8 +58,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 @app.get("/users", tags=["All users"])
 async def get_all_users(
     db: AsyncSession = Depends(get_db),
@@ -67,7 +65,6 @@ async def get_all_users(
 ):
     result = await db.execute(select(User))
     users = result.scalars().all()
-    
     return users
     
 app.include_router(api_router, prefix=settings.API_BASE)
