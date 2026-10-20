@@ -40,7 +40,7 @@ async def main():
 asyncio.run(main())
 
 
-                #     asyncio.run(main()) #basically event loop gets creates when we use asyncio.run, with normal func it doesnt gets created 
+                #     asyncio.run(main()) #basically event loop gets creates when we use asyncio.run, with normal func it doesn't gets created  
                 #             │
                 #             ▼
                 #  ┌─────────────────────┐

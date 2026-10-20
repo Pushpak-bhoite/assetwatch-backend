@@ -12,7 +12,6 @@ from app.api.main import api_router
 from app.core.config import settings
 from scripts import create_superuser_if_not_exists
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("=" * 50)
