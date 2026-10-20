@@ -1,0 +1,5 @@
+To start celery u need to start redis with docker.
+
+docker compose up -d
+uv run celery -A app.celery_files.celery_app:celery_app worker --loglevel=info
+
