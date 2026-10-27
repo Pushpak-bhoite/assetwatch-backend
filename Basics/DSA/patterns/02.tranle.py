@@ -5,7 +5,7 @@ def triangle(k):
             if j <= x + i and j >= x -i:
                 print("*", end="")
             else :
-                print(" ", end="")
+                print("-", end="")
             
         print() 
 
