@@ -3,13 +3,13 @@ k = [1,2,3,4,5,5,5,5,9,0,0,5]
 
 # def remove_dup(nums):
 #     for i in range(len(nums)): # this range keeps shrinking as we remove elements from list 
-#         j = i + 1
-#         print(range(len(nums)))
+#         j = i + 1 
+#         print(range(len(nums))) 
 #         while j < len(nums): 
-#             if k[i] == k[j] :
+#             if k[i] == k[j] : 
 #                 del nums[j] #del index and pop()  works same 
-#             else :
-#                 j += 1
+#             else : 
+#                 j += 1 
             
 #     return nums
 
@@ -50,22 +50,22 @@ def with_set(nums):
             i = j
             j +=1
     return nums
-k3 = [3,3]
-print(with_set(k3))
+k3 = k4= [1,1,2,2,2,2,3,4,5,6]
+
+print("with_set =======>",with_set(k3))
+
 
 print("========= stand way========  It's not complete yet")
 # count method, we are moving all unique element to front side(left)
-def with_count(nums):
-    j =1
-    for i in range(1,len(nums)):
-        if nums[i] != nums[i-1]: 
-            print(nums[i] ,nums[i])
-            nums[j] = nums[i]
-            j += 1
-            pass
-    print(nums)
-    return j
-k4= [1,1,2,2,3,4,5,6]
-
-print(with_count(k4))
-print(k4)
+# as it's already sorted we just check if 2 consecutive elements are diff. 
+k = [1,2,3,4,5,5,5,5,6,6,7,8]
+def shift_no(k): 
+  i = 0 
+  j = 0
+  for i in range(len(k)):
+    if k[i] == 0 or k[i] != k[i-1]:
+      k[j] = k[i]
+      j += 1
+  return k[:j]
+print(shift_no(k))
+print(k)

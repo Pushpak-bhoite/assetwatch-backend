@@ -30,10 +30,10 @@ async def main():
     
     t1 = asyncio.create_task(task2())   
     t2 = asyncio.create_task(task2())   
-    asyncio.create_task(task3())   # this createTask doesnt have await but still it completes,becoz there is await with gather below which keeps main alive for 3sec & task3 happens to take same time (3sec) as task1 ans task2
+    asyncio.create_task(task3())   # this createTask doesn't have await but still it completes,becoz there is await with gather below which keeps main alive for 3sec & task3 happens to take same time (3sec) as task1 ans task2
     
     r1,r2 = await asyncio.gather(t1, t2) 
-    # or u can take res in single var and then do res[1], res[2]
+    # or u can take res in single var and then do res[1], res[2] 
     print(r1, r2)
     asyncio.create_task(task4())   #for this t-4End wont be printed since we doesn't have await
     
