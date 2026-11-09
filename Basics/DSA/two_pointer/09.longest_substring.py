@@ -50,8 +50,6 @@ def longest_substring_brute(s):
             if len(windowStr) > maxLen    :
                 lStr = windowStr
                 maxLen = len(windowStr)
-            print("Hello", )
     return lStr
-        
             
 print(longest_substring_brute(s))

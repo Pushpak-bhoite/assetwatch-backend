@@ -12,7 +12,6 @@ class Solution:
             
         return cnt
 
-
 # nums =  [1, 1, 0, 1, 0, 0, 1]
 # goal = 3
 nums= [0, 0, 0, 0, 1] 

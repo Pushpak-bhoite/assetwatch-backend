@@ -14,8 +14,7 @@ def longest_substring_practice(s):
                 if len(seen) > len(lStr) :
                     lStr = seen
     return lStr
-            
-        
+                  
 def longest_substring_optimized(s):
     left = 0
     right = 0 
@@ -35,10 +34,8 @@ def longest_substring_optimized(s):
         print(f"seen->{right} - ", seen)
 
     return maxLen
-            
-             
     
-myStr = "cadbazxcyvf" 
+myStr = "cadbazxcyvf"  
 print(longest_substring_optimized(myStr))
 
 # print(longest_substring_practice(myStr))

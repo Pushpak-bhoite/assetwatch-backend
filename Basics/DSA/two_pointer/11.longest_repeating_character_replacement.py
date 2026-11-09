@@ -15,7 +15,7 @@ def longest_repeating_character(s, k):
                 total = map_char[keys[0]]
                 if total > max:
                     max = total
-                    
+
             if len(keys) == 2 :  
                 if map_char[keys[0]] <= k or map_char[keys[1]] <= k :
                     second = map_char[keys[1]] if len(keys) > 1 else 0
@@ -30,3 +30,73 @@ def longest_repeating_character(s, k):
     # print(map_char)
 s ="BAABAABBBAAA"
 print(longest_repeating_character(s, 2))
+
+# ===============================Different way ==============================================
+def longest_repeating_character(s, k):
+  max_cnt = 0
+  for i in range(len(s)):
+    seen = {}
+    for j in range(i, len(s)):
+      if s[j] in seen.keys():
+        seen[s[j]] = seen[s[j]] + 1 
+      else :
+        seen[s[j]] = 1 
+# Main thing is here - 
+      total_window = (j - i ) + 1
+      rest_chars = total_window - max(seen.values())
+      if rest_chars > k : 
+          seen = {}
+          break
+
+      if max_cnt < sum(seen.values()): 
+        print(i, j, s[i:j+1]) 
+        max_cnt = sum(seen.values())
+  return max_cnt    
+
+# s ="BAABAABBBAAA"
+# s ="BAABAAA"
+s ="BBBAAA"
+print(longest_repeating_character(s, 1))
+
+# ========================== Optimized way ================================
+def longest_repeating_character(s, k):
+  i = 0 
+  j = 0 
+  seen = {}
+  max_cnt = 0 
+  while j < len(s):
+    total_window = (j - i ) + 1
+    if len(seen): 
+      max_feq  = max(seen.values())
+      rest_chars = total_window - max_feq
+
+   
+    if rest_chars > k : 
+      seen[s[i]] -= 1 
+      i += 1
+    else : 
+      j += 1
+      if s[j] in seen.keys():
+        seen[s[j]] = seen[s[j]] + 1 
+      else :
+        seen[s[j]] = 1 
+
+
+    print("if:", s[i:j + 1], seen, "rest_char->", rest_chars, "total_window : ", total_window) 
+    
+    if max_cnt < sum(seen.values()): 
+      max_cnt = sum(seen.values())
+  return max_cnt    
+
+# s ="BAABAABBBAAA"
+# s ="BAABAAA"
+s ="BBBAAA"
+print(longest_repeating_character(s, 1))
+
+
+
+
+
+
+
+
