@@ -19,7 +19,7 @@ def number_of_substrings(s):
             left += 1
             right = left 
     return cnt
-           
+# ==========================================================================
 def by_brute_force(s):
     cnt =0
     for i in range(len(s)):
