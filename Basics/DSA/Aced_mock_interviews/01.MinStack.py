@@ -13,6 +13,7 @@
 
 
 
+
 class MinStack:
   def __init__(self):
     self.stack = []
@@ -35,7 +36,7 @@ class MinStack:
   def top(self) -> int:
     return self.stack[-1]
 
-  def getMini(self) -> int:
+  def getMin(self) -> int:
     return self.minStack[-1]
 
   def showStack(self):
@@ -46,8 +47,8 @@ obj.push(10)
 obj.push(5)
 obj.push(20)
 obj.push(30)
-# print("getmini->", obj.getMini())
-# print("top->", obj.top())
+print("getmini->", obj.getMin())
+print("top->", obj.top())
 print("pop->", obj.pop())
 obj.showStack()
 
